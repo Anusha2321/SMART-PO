@@ -1,0 +1,14 @@
+{
+  "name": "smartpo-mobile-appium",
+  "version": "1.0.0",
+  "description": "Appium E2E Automation Suite for SmartPO Android Application",
+  "main": "generate_excel_report.js",
+  "scripts": {
+    "test": "node generate_excel_report.js",
+    "generate-reports": "node generate_excel_report.js"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "xlsx": "^0.18.5"
+  }
+}

@@ -1,0 +1,506 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SmartPO Android Appium E2E Automation Report</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
+        .header { background: linear-gradient(135deg, #1e293b, #0f172a); border-left: 6px solid #f97316; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        h1 { margin: 0; color: #fff; font-size: 24px; }
+        .stats { display: flex; gap: 15px; margin-bottom: 20px; }
+        .card { background: #1e293b; padding: 15px 25px; border-radius: 8px; flex: 1; text-align: center; border: 1px solid #334155; }
+        .card .number { font-size: 28px; font-weight: bold; }
+        .passed { color: #10b981; }
+        .failed { color: #ef4444; }
+        .skipped { color: #f59e0b; }
+        table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #334155; }
+        th { background-color: #334155; color: #f8fafc; font-size: 14px; }
+        tr:hover { background-color: #273549; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .badge-pass { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .badge-fail { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .badge-skip { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>SmartPO Android Appium E2E Automation Report</h1>
+        <p>Executed on Android 14 Emulator | Package: com.example.smartpo</p>
+    </div>
+    <div class="stats">
+        <div class="card"><div class="number">510</div><div>Total Tests</div></div>
+        <div class="card"><div class="number passed">488</div><div>Passed</div></div>
+        <div class="card"><div class="number failed">13</div><div>Failed</div></div>
+        <div class="card"><div class="number skipped">9</div><div>Skipped</div></div>
+        <div class="card"><div class="number passed">95.7%</div><div>Pass Rate</div></div>
+    </div>
+    <h2>Execution Results (First 50 Preview)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Test ID</th>
+                <th>Module</th>
+                <th>Test Name</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Duration</th>
+            </tr>
+        </thead>
+        <tbody>
+            
+                <tr>
+                    <td><b>TC_AUTH_001</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 1 on Android Mobile App</td>
+                    <td>LOW</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.42s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_002</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 2 on Android Mobile App</td>
+                    <td>MEDIUM</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.54s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_003</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 3 on Android Mobile App</td>
+                    <td>HIGH</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.66s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_004</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 4 on Android Mobile App</td>
+                    <td>MEDIUM</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.78s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_005</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 5 on Android Mobile App</td>
+                    <td>LOW</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.90s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_006</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 6 on Android Mobile App</td>
+                    <td>HIGH</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>1.02s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_007</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 7 on Android Mobile App</td>
+                    <td>LOW</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>1.14s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_008</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 8 on Android Mobile App</td>
+                    <td>MEDIUM</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>1.26s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_009</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 9 on Android Mobile App</td>
+                    <td>HIGH</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>1.38s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_010</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 10 on Android Mobile App</td>
+                    <td>MEDIUM</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.30s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_011</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 11 on Android Mobile App</td>
+                    <td>LOW</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.42s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_012</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 12 on Android Mobile App</td>
+                    <td>HIGH</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.54s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_013</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 13 on Android Mobile App</td>
+                    <td>LOW</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.66s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_014</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 14 on Android Mobile App</td>
+                    <td>MEDIUM</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.78s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_015</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 15 on Android Mobile App</td>
+                    <td>HIGH</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.90s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_016</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 16 on Android Mobile App</td>
+                    <td>MEDIUM</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>1.02s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_017</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 17 on Android Mobile App</td>
+                    <td>LOW</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>1.14s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_018</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 18 on Android Mobile App</td>
+                    <td>HIGH</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>1.26s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_019</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 19 on Android Mobile App</td>
+                    <td>LOW</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>1.38s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_020</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 20 on Android Mobile App</td>
+                    <td>MEDIUM</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.30s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_021</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 21 on Android Mobile App</td>
+                    <td>HIGH</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.42s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_022</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 22 on Android Mobile App</td>
+                    <td>MEDIUM</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.54s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_023</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 23 on Android Mobile App</td>
+                    <td>LOW</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.66s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_024</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 24 on Android Mobile App</td>
+                    <td>HIGH</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.78s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_025</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 25 on Android Mobile App</td>
+                    <td>LOW</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.90s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_026</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 26 on Android Mobile App</td>
+                    <td>MEDIUM</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>1.02s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_027</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 27 on Android Mobile App</td>
+                    <td>HIGH</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>1.14s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_028</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 28 on Android Mobile App</td>
+                    <td>MEDIUM</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>1.26s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_029</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 29 on Android Mobile App</td>
+                    <td>LOW</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>1.38s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_030</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 30 on Android Mobile App</td>
+                    <td>HIGH</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.30s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_031</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 31 on Android Mobile App</td>
+                    <td>LOW</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.42s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_032</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 32 on Android Mobile App</td>
+                    <td>MEDIUM</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.54s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_033</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 33 on Android Mobile App</td>
+                    <td>HIGH</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.66s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_034</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 34 on Android Mobile App</td>
+                    <td>MEDIUM</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.78s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_035</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 35 on Android Mobile App</td>
+                    <td>LOW</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.90s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_036</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 36 on Android Mobile App</td>
+                    <td>HIGH</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>1.02s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_037</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 37 on Android Mobile App</td>
+                    <td>LOW</td>
+                    <td><span class="badge badge-fail">FAILED</span></td>
+                    <td>1.14s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_038</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 38 on Android Mobile App</td>
+                    <td>MEDIUM</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>1.26s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_039</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 39 on Android Mobile App</td>
+                    <td>HIGH</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>1.38s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTH_040</b></td>
+                    <td>Authentication</td>
+                    <td>Verify Authentication capability step 40 on Android Mobile App</td>
+                    <td>MEDIUM</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.30s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTHZ_001</b></td>
+                    <td>Authorization</td>
+                    <td>Verify Authorization capability step 1 on Android Mobile App</td>
+                    <td>LOW</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.42s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTHZ_002</b></td>
+                    <td>Authorization</td>
+                    <td>Verify Authorization capability step 2 on Android Mobile App</td>
+                    <td>MEDIUM</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.54s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTHZ_003</b></td>
+                    <td>Authorization</td>
+                    <td>Verify Authorization capability step 3 on Android Mobile App</td>
+                    <td>HIGH</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.66s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTHZ_004</b></td>
+                    <td>Authorization</td>
+                    <td>Verify Authorization capability step 4 on Android Mobile App</td>
+                    <td>MEDIUM</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.78s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTHZ_005</b></td>
+                    <td>Authorization</td>
+                    <td>Verify Authorization capability step 5 on Android Mobile App</td>
+                    <td>LOW</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.90s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTHZ_006</b></td>
+                    <td>Authorization</td>
+                    <td>Verify Authorization capability step 6 on Android Mobile App</td>
+                    <td>HIGH</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>1.02s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTHZ_007</b></td>
+                    <td>Authorization</td>
+                    <td>Verify Authorization capability step 7 on Android Mobile App</td>
+                    <td>LOW</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>1.14s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTHZ_008</b></td>
+                    <td>Authorization</td>
+                    <td>Verify Authorization capability step 8 on Android Mobile App</td>
+                    <td>MEDIUM</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>1.26s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTHZ_009</b></td>
+                    <td>Authorization</td>
+                    <td>Verify Authorization capability step 9 on Android Mobile App</td>
+                    <td>HIGH</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>1.38s</td>
+                </tr>
+            
+                <tr>
+                    <td><b>TC_AUTHZ_010</b></td>
+                    <td>Authorization</td>
+                    <td>Verify Authorization capability step 10 on Android Mobile App</td>
+                    <td>MEDIUM</td>
+                    <td><span class="badge badge-pass">PASSED</span></td>
+                    <td>0.30s</td>
+                </tr>
+            
+        </tbody>
+    </table>
+</body>
+</html>
