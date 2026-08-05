@@ -1,0 +1,14 @@
+{
+  "name": "smart-po",
+  "version": "1.0.0",
+  "description": "SmartPO Enterprise Application, Website, Testing Frameworks and CI/CD Pipelines",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix Website run dev",
+    "build": "npm --prefix Website run build",
+    "test:mobile": "node Testing/Mobile-Appium/generate_excel_report.js",
+    "test:web": "node Testing/Enterprise-Selenium/generate_selenium_excel.js",
+    "test:security": "node Testing/Security-Audit/generate_security_excel.js",
+    "test:load": "node Testing/Load-Testing/load_test_runner.js"
+  }
+}
