@@ -56,6 +56,66 @@ class OrderViewModel : ViewModel() {
 
     private val GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"
 
+    init {
+        loadOrdersFromLocalAndCloud()
+    }
+
+    private fun saveOrdersToLocalDisk() {
+        try {
+            val context = com.example.smartpo.SmartPoApplication.instance
+            val prefs = context.getSharedPreferences("smartpo_orders_storage", android.content.Context.MODE_PRIVATE)
+            val ordersJson = SupabaseClient.gson.toJson(_orders.value)
+            val itemsJson = SupabaseClient.gson.toJson(savedOrderItems.toList())
+            prefs.edit()
+                .putString("saved_orders", ordersJson)
+                .putString("saved_order_items", itemsJson)
+                .apply()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun loadOrdersFromLocalAndCloud() {
+        try {
+            val context = com.example.smartpo.SmartPoApplication.instance
+            val prefs = context.getSharedPreferences("smartpo_orders_storage", android.content.Context.MODE_PRIVATE)
+            val ordersJson = prefs.getString("saved_orders", null)
+            val itemsJson = prefs.getString("saved_order_items", null)
+
+            if (!ordersJson.isNullOrEmpty()) {
+                val listType = object : TypeToken<List<OrderEntity>>() {}.type
+                val savedList: List<OrderEntity> = SupabaseClient.gson.fromJson(ordersJson, listType)
+                _orders.value = savedList
+            }
+
+            if (!itemsJson.isNullOrEmpty()) {
+                val itemsType = object : TypeToken<List<OrderItemEntity>>() {}.type
+                val savedItemsList: List<OrderItemEntity> = SupabaseClient.gson.fromJson(itemsJson, itemsType)
+                savedOrderItems.clear()
+                savedOrderItems.addAll(savedItemsList)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val resp = SupabaseClient.get("/rest/v1/orders?select=*")
+                if (resp.isNotEmpty()) {
+                    val listType = object : TypeToken<List<OrderEntity>>() {}.type
+                    val cloudOrders: List<OrderEntity> = SupabaseClient.gson.fromJson(resp, listType)
+                    if (cloudOrders.isNotEmpty()) {
+                        val merged = (_orders.value + cloudOrders).distinctBy { it.id.ifEmpty { it.order_number } }
+                        _orders.value = merged
+                        saveOrdersToLocalDisk()
+                    }
+                }
+            } catch (e: Exception) {
+                // Keep local disk orders if offline
+            }
+        }
+    }
+
     fun getAllOrders(): Flow<List<OrderEntity>> = _orders
 
     suspend fun getOrderById(id: String): OrderEntity? {
@@ -182,6 +242,7 @@ class OrderViewModel : ViewModel() {
             val current = _orders.value.toMutableList()
             current.add(newOrder)
             _orders.value = current
+            saveOrdersToLocalDisk()
             
             // Clear current selection
             poNumber = "PO-${System.currentTimeMillis().toString().takeLast(6)}-${(1000..9999).random()}"
@@ -201,6 +262,7 @@ class OrderViewModel : ViewModel() {
         val current = _orders.value.toMutableList()
         current.removeAll { it.id == orderId }
         _orders.value = current
+        saveOrdersToLocalDisk()
     }
 
     fun updateOrder(updated: OrderEntity) {
@@ -209,6 +271,7 @@ class OrderViewModel : ViewModel() {
         if (index != -1) {
             current[index] = updated
             _orders.value = current
+            saveOrdersToLocalDisk()
         }
     }
 
@@ -226,7 +289,7 @@ class OrderViewModel : ViewModel() {
         _orders.value = current
         
         // Save order item
-        selectedItems.add(OrderItemEntity(
+        val item = OrderItemEntity(
             order_id = orderId,
             product_name = itemName,
             quantity = qty,
@@ -234,7 +297,10 @@ class OrderViewModel : ViewModel() {
             total_price = total,
             unit = unit,
             itemId = UUID.randomUUID().toString()
-        ))
+        )
+        selectedItems.add(item)
+        savedOrderItems.add(item)
+        saveOrdersToLocalDisk()
     }
 
     fun parseOrderWithAi(text: String, catalogList: List<com.example.smartpo.data.database.ItemEntity>) {
