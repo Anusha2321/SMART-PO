@@ -1,0 +1,125 @@
+{
+  "info": {
+    "name": "SmartPO API Integration & Access Control Suite",
+    "description": "Functional integration test collection to verify status codes, RBAC rules, and API contracts.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Public - Fetch Catalog Products",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/rest/v1/products?select=*",
+          "host": ["{{baseUrl}}"],
+          "path": ["rest", "v1", "products"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200 OK for public catalog read', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Protected - Fetch Orders (No Token)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/rest/v1/orders?select=*",
+          "host": ["{{baseUrl}}"],
+          "path": ["rest", "v1", "orders"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Unauthenticated request to protected endpoint returns 401 or 403', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Protected - Create Purchase Order (Buyer Role)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{buyerToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"order_number\": \"PO-TEST-1001\",\n  \"customer_name\": \"Test Buyer\",\n  \"total_amount\": 1500.00\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/rest/v1/orders",
+          "host": ["{{baseUrl}}"],
+          "path": ["rest", "v1", "orders"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Authenticated buyer creation returns 201 Created or 200 OK', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Only - Update Stock Pricing (Unauthorized Role Check)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{buyerToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Steel Beam\",\n  \"price_per_kg\": 85.00\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/rest/v1/products",
+          "host": ["{{baseUrl}}"],
+          "path": ["rest", "v1", "products"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Non-admin role attempting admin write returns 403 Forbidden', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([403, 401]);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

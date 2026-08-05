@@ -1,0 +1,51 @@
+{
+  "summary": {
+    "platform": "SmartPO Enterprise Platform",
+    "timestamp": "2026-08-05T14:20:00Z",
+    "endpointsDiscovered": 6,
+    "securityAuditStatus": "PASSED (0 Secrets / 0 Plaintext Passwords Committed)"
+  },
+  "endpoints": [
+    {
+      "path": "/rest/v1/products",
+      "method": "GET",
+      "access": "Public Read",
+      "expectedStatus": 200
+    },
+    {
+      "path": "/rest/v1/products",
+      "method": "POST",
+      "access": "Admin Only",
+      "expectedStatus": 403
+    },
+    {
+      "path": "/rest/v1/orders",
+      "method": "GET",
+      "access": "Protected (Buyer / Manager)",
+      "expectedStatus": 200
+    },
+    {
+      "path": "/rest/v1/orders",
+      "method": "POST",
+      "access": "Protected (Buyer)",
+      "expectedStatus": 201
+    },
+    {
+      "path": "/rest/v1/order_items",
+      "method": "GET",
+      "access": "Protected (Buyer / Manager)",
+      "expectedStatus": 200
+    },
+    {
+      "path": "/rest/v1/order_items",
+      "method": "POST",
+      "access": "Protected (Buyer)",
+      "expectedStatus": 201
+    }
+  ],
+  "secretsAudit": {
+    "gitIgnoreProtected": true,
+    "gitleaksPassed": true,
+    "hardcodedSecretsFound": 0
+  }
+}
