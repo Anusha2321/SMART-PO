@@ -43,10 +43,13 @@ fun LoginScreen(navController: NavController) {
     var showGoogleChooser by remember { mutableStateOf(false) }
     var showForgotPasswordDialog by remember { mutableStateOf(false) }
 
-    // Forgot Password States
+    // Forgot Password OTP States (1: Email, 2: 6-Digit OTP, 3: New Password, 4: Done)
     var resetEmailInput by remember { mutableStateOf("") }
+    var generatedOtp by remember { mutableStateOf("") }
+    var inputOtp by remember { mutableStateOf("") }
     var resetNewPassInput by remember { mutableStateOf("") }
-    var resetStep by remember { mutableStateOf(1) } // 1: Enter email, 2: New Password, 3: Done
+    var resetConfirmPassInput by remember { mutableStateOf("") }
+    var resetStep by remember { mutableStateOf(1) }
 
     val googleAccountsList = remember { mutableStateListOf<GoogleAccountItem>() }
 
@@ -65,10 +68,10 @@ fun LoginScreen(navController: NavController) {
 
         // Load default and dynamically registered emails into Google accounts chooser
         googleAccountsList.clear()
-        googleAccountsList.add(GoogleAccountItem("admin@gmail.com", "SmartPO Administrator", "A", Color(0xFF2563EB)))
-        googleAccountsList.add(GoogleAccountItem("anusha@gmail.com", "Anusha (SmartPO Lead)", "A", Color(0xFFF97316)))
+        googleAccountsList.add(GoogleAccountItem("anushabandiatmakur2005@gmail.com", "Anusha (Registered)", "A", Color(0xFF2563EB)))
+        googleAccountsList.add(GoogleAccountItem("admin@gmail.com", "SmartPO Administrator", "A", Color(0xFFF97316)))
 
-        if (savedUser.isNotEmpty() && savedUser != "admin@gmail.com" && savedUser != "anusha@gmail.com") {
+        if (savedUser.isNotEmpty() && savedUser != "admin@gmail.com" && savedUser != "anushabandiatmakur2005@gmail.com") {
             googleAccountsList.add(
                 GoogleAccountItem(
                     email = savedUser,
@@ -79,6 +82,10 @@ fun LoginScreen(navController: NavController) {
             )
         }
     }
+
+    val loginState by viewModel.loginState.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
 
     LaunchedEffect(loginState) {
         if (loginState == true) {
@@ -104,10 +111,6 @@ fun LoginScreen(navController: NavController) {
             }
         }
     }
-
-    val loginState by viewModel.loginState.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
 
     Box(
         modifier = Modifier
@@ -243,7 +246,8 @@ fun LoginScreen(navController: NavController) {
                     ) {
                         TextButton(
                             onClick = {
-                                resetEmailInput = username
+                                resetEmailInput = if (username.isNotBlank()) username else "anushabandiatmakur2005@gmail.com"
+                                inputOtp = ""
                                 resetStep = 1
                                 showForgotPasswordDialog = true
                             },
@@ -509,7 +513,7 @@ fun LoginScreen(navController: NavController) {
         )
     }
 
-    // Forgot Password Reset Dialog
+    // Forgot Password Reset Dialog with 6-Digit OTP Code Verification
     if (showForgotPasswordDialog) {
         AlertDialog(
             onDismissRequest = { showForgotPasswordDialog = false },
@@ -525,7 +529,7 @@ fun LoginScreen(navController: NavController) {
                 Column {
                     if (resetStep == 1) {
                         Text(
-                            text = "Enter your registered email address to receive password reset instructions:",
+                            text = "Enter your registered email to receive your 6-digit verification code:",
                             fontSize = 13.sp,
                             color = Color(0xFF64748B),
                             modifier = Modifier.padding(bottom = 12.dp)
@@ -539,8 +543,38 @@ fun LoginScreen(navController: NavController) {
                             shape = RoundedCornerShape(10.dp)
                         )
                     } else if (resetStep == 2) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF6FF))
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Text(
+                                    text = "✓ Verification Code Sent!",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF2563EB)
+                                )
+                                Text(
+                                    text = "Code for $resetEmailInput: $generatedOtp",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFF1D4ED8)
+                                )
+                            }
+                        }
+
+                        OutlinedTextField(
+                            value = inputOtp,
+                            onValueChange = { if (it.length <= 6) inputOtp = it },
+                            label = { Text("Enter 6-Digit Code (OTP)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                    } else if (resetStep == 3) {
                         Text(
-                            text = "✓ Reset code sent to $resetEmailInput. Enter your new password:",
+                            text = "✓ Code Verified! Enter your new password below:",
                             fontSize = 13.sp,
                             color = Color(0xFF10B981),
                             modifier = Modifier.padding(bottom = 12.dp)
@@ -569,6 +603,7 @@ fun LoginScreen(navController: NavController) {
                     Button(
                         onClick = {
                             if (resetEmailInput.isNotBlank()) {
+                                generatedOtp = ((100000..999999).random()).toString()
                                 resetStep = 2
                             } else {
                                 Toast.makeText(context, "Please enter your email", Toast.LENGTH_SHORT).show()
@@ -576,9 +611,22 @@ fun LoginScreen(navController: NavController) {
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A3C6E))
                     ) {
-                        Text("Send Verification")
+                        Text("Send 6-Digit Code")
                     }
                 } else if (resetStep == 2) {
+                    Button(
+                        onClick = {
+                            if (inputOtp.trim() == generatedOtp.trim()) {
+                                resetStep = 3
+                            } else {
+                                Toast.makeText(context, "Invalid 6-digit code. Use: $generatedOtp", Toast.LENGTH_LONG).show()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
+                    ) {
+                        Text("Verify Code")
+                    }
+                } else if (resetStep == 3) {
                     Button(
                         onClick = {
                             if (resetNewPassInput.isNotBlank()) {
@@ -586,7 +634,7 @@ fun LoginScreen(navController: NavController) {
                                 credPrefs.edit()
                                     .putString("pass_${resetEmailInput.trim().lowercase()}", resetNewPassInput)
                                     .apply()
-                                resetStep = 3
+                                resetStep = 4
                             } else {
                                 Toast.makeText(context, "Please enter a new password", Toast.LENGTH_SHORT).show()
                             }
@@ -609,7 +657,7 @@ fun LoginScreen(navController: NavController) {
                 }
             },
             dismissButton = {
-                if (resetStep < 3) {
+                if (resetStep < 4) {
                     TextButton(onClick = { showForgotPasswordDialog = false }) {
                         Text("Cancel", color = Color.Gray)
                     }
