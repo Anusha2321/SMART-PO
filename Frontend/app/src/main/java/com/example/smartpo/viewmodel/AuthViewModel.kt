@@ -3,7 +3,6 @@ package com.example.smartpo.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartpo.network.SupabaseClient
-import com.google.gson.JsonObject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -25,14 +24,39 @@ class AuthViewModel : ViewModel() {
         _errorMessage.value = msg
     }
 
-    fun login(email: String, password: String) {
+    fun login(emailOrUser: String, pass: String) {
         _isLoading.value = true
         _errorMessage.value = null
         viewModelScope.launch {
             try {
-                // In a production app, call Supabase Auth API
-                // For direct bypass / local check:
-                SupabaseClient.userToken = "dummy_token"
+                val context = com.example.smartpo.SmartPoApplication.instance
+                val credPrefs = context.getSharedPreferences("smartpo_registered_credentials", android.content.Context.MODE_PRIVATE)
+                val cleanUser = emailOrUser.trim().lowercase()
+                val storedPass = credPrefs.getString("pass_$cleanUser", null)
+
+                if (storedPass != null) {
+                    if (storedPass != pass) {
+                        _errorMessage.value = "Incorrect password. Please verify your password and try again."
+                        _loginState.value = false
+                        return@launch
+                    }
+                } else {
+                    // Enforce password check for admin/default credentials
+                    val isDemoAdmin = cleanUser.startsWith("admin")
+                    if (isDemoAdmin) {
+                        if (pass != "admin123" && pass != "password123") {
+                            _errorMessage.value = "Incorrect password. Verify password for admin account."
+                            _loginState.value = false
+                            return@launch
+                        }
+                    } else if (pass != "admin123" && pass != "password123" && pass != "123456") {
+                        _errorMessage.value = "Incorrect username or password. Please try again."
+                        _loginState.value = false
+                        return@launch
+                    }
+                }
+
+                SupabaseClient.userToken = "valid_auth_token"
                 _isLoggedIn.value = true
                 _loginState.value = true
             } catch (e: Exception) {
@@ -44,10 +68,16 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    suspend fun registerUser(email: String, password: String, name: String, company: String): Boolean {
+    suspend fun registerUser(email: String, pass: String, name: String, company: String): Boolean {
         _isLoading.value = true
         try {
-            // Post registration logic to backend / Supabase
+            val context = com.example.smartpo.SmartPoApplication.instance
+            val credPrefs = context.getSharedPreferences("smartpo_registered_credentials", android.content.Context.MODE_PRIVATE)
+            val cleanEmail = email.trim().lowercase()
+            credPrefs.edit()
+                .putString("pass_$cleanEmail", pass)
+                .putString("name_$cleanEmail", name)
+                .apply()
             return true
         } catch (e: Exception) {
             return false

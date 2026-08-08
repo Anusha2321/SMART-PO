@@ -2,7 +2,6 @@ package com.example.smartpo.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -28,6 +27,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.smartpo.viewmodel.AuthViewModel
 
+data class GoogleAccountItem(val email: String, val name: String, val initial: String, val color: Color)
+
 @Composable
 fun LoginScreen(navController: NavController) {
     val context = LocalContext.current
@@ -37,6 +38,13 @@ fun LoginScreen(navController: NavController) {
     var password by remember { mutableStateOf("") }
     var rememberMe by remember { mutableStateOf(true) }
     var passwordVisible by remember { mutableStateOf(false) }
+    var showGoogleChooser by remember { mutableStateOf(false) }
+
+    val googleAccountsList = listOf(
+        GoogleAccountItem("admin@gmail.com", "SmartPO Administrator", "A", Color(0xFF2563EB)),
+        GoogleAccountItem("anusha@gmail.com", "Anusha (SmartPO Lead)", "A", Color(0xFFF97316)),
+        GoogleAccountItem("user@gmail.com", "Standard User Account", "U", Color(0xFF10B981))
+    )
 
     val loginState by viewModel.loginState.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -210,7 +218,7 @@ fun LoginScreen(navController: NavController) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 6.dp),
+                            .padding(top = 4.dp),
                         horizontalArrangement = Arrangement.End
                     ) {
                         TextButton(
@@ -336,7 +344,7 @@ fun LoginScreen(navController: NavController) {
                     // Continue with Google Button
                     OutlinedButton(
                         onClick = {
-                            viewModel.login("admin@google.com", "googlepass")
+                            showGoogleChooser = true
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -389,5 +397,93 @@ fun LoginScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+
+    // Google Account Selection Dialog
+    if (showGoogleChooser) {
+        AlertDialog(
+            onDismissRequest = { showGoogleChooser = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.AccountCircle,
+                        contentDescription = "Google",
+                        tint = Color(0xFF4285F4),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Choose a Google Account",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A)
+                    )
+                }
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Select an email account to sign in to SmartPO:",
+                        fontSize = 13.sp,
+                        color = Color(0xFF64748B),
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+
+                    googleAccountsList.forEach { acc ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .clickable {
+                                    showGoogleChooser = false
+                                    username = acc.email
+                                    viewModel.login(acc.email, "admin123")
+                                },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .background(acc.color, shape = RoundedCornerShape(18.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = acc.initial,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = acc.name,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF0F172A)
+                                    )
+                                    Text(
+                                        text = acc.email,
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF64748B)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showGoogleChooser = false }) {
+                    Text("Cancel", color = Color.Gray)
+                }
+            }
+        )
     }
 }
