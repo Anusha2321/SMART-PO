@@ -37,7 +37,7 @@ export default function Navbar() {
 
   return (
     <nav className="glass" style={{ padding: '0.85rem 2rem', position: 'sticky', top: 0, zIndex: 50, borderBottom: '1px solid var(--border)' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         
         {/* Brand Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '2.5rem' }}>

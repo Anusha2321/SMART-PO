@@ -33,6 +33,10 @@ const DEFAULT_SEED_ORDERS = [
   }
 ];
 
+export function getOrders() {
+  return getLocalOrders();
+}
+
 export function getLocalOrders() {
   try {
     const data = localStorage.getItem(ORDERS_STORAGE_KEY);

@@ -6,6 +6,10 @@
 import { supabase } from './supabase';
 import { getLocalOrders } from './orderStore';
 
+export function formatRupee(amount) {
+  return '₹' + Number(amount || 0).toLocaleString('en-IN');
+}
+
 export async function getOrderItemsForExport(order, items = []) {
   if (items && Array.isArray(items) && items.length > 0) {
     return items;
