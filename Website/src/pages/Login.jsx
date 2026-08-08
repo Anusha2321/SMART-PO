@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Lock, Eye, EyeOff, AlertCircle, ArrowRight, CheckSquare, Square, X } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, AlertCircle, ArrowRight, CheckSquare, Square, X, Mail, CheckCircle } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -10,16 +10,25 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [showGoogleChooser, setShowGoogleChooser] = useState(false);
 
-  // Pre-configured Google accounts for the chooser
-  const googleAccounts = [
+  // Modals
+  const [showGoogleChooser, setShowGoogleChooser] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+
+  // Forgot Password State
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetStep, setResetStep] = useState(1); // 1: Email Input, 2: New Password Input, 3: Success
+  const [newPassword, setNewPassword] = useState('');
+  const [resetError, setResetError] = useState(null);
+
+  // Dynamic Google Accounts List
+  const [googleAccounts, setGoogleAccounts] = useState([
     { email: 'admin@gmail.com', name: 'SmartPO Administrator', avatar: 'A', bg: '#2563EB' },
-    { email: 'anusha@gmail.com', name: 'Anusha (SmartPO Lead)', avatar: 'A', bg: '#F97316' },
-    { email: 'user@gmail.com', name: 'Standard User Account', avatar: 'U', bg: '#10B981' }
-  ];
+    { email: 'anusha@gmail.com', name: 'Anusha (SmartPO Lead)', avatar: 'A', bg: '#F97316' }
+  ]);
 
   useEffect(() => {
+    // 1. Auto-fill saved credentials
     const savedCreds = localStorage.getItem('smartpo_remembered_credentials');
     if (savedCreds) {
       try {
@@ -27,9 +36,32 @@ export default function Login() {
         if (savedUser) setUsername(savedUser);
         if (savedPassword) setPassword(savedPassword);
         setRememberMe(true);
-      } catch (e) {
-        // ignore parse error
-      }
+      } catch (e) {}
+    }
+
+    // 2. Dynamically load signed-up user emails into Google Account Chooser
+    const usersStr = localStorage.getItem('smartpo_registered_users');
+    if (usersStr) {
+      try {
+        const registeredUsers = JSON.parse(usersStr);
+        if (Array.isArray(registeredUsers)) {
+          const dynamicAccounts = [...googleAccounts];
+          const existingEmails = new Set(googleAccounts.map(g => g.email.toLowerCase()));
+
+          registeredUsers.forEach(u => {
+            if (u.email && !existingEmails.has(u.email.toLowerCase())) {
+              existingEmails.add(u.email.toLowerCase());
+              dynamicAccounts.push({
+                email: u.email,
+                name: u.name || u.email.split('@')[0],
+                avatar: (u.name || u.email)[0].toUpperCase(),
+                bg: '#10B981'
+              });
+            }
+          });
+          setGoogleAccounts(dynamicAccounts);
+        }
+      } catch (e) {}
     }
   }, []);
 
@@ -50,28 +82,24 @@ export default function Login() {
     setLoading(true);
 
     setTimeout(() => {
-      // Check registered users storage
       const usersStr = localStorage.getItem('smartpo_registered_users');
       let registeredUsers = [];
       try {
         if (usersStr) registeredUsers = JSON.parse(usersStr);
       } catch (e) {}
 
-      // Look up account
       const match = registeredUsers.find(u => 
         (u.username && u.username.toLowerCase() === inputUser) || 
         (u.email && u.email.toLowerCase() === inputUser)
       );
 
       if (match) {
-        // STRICT PASSWORD CHECK
         if (match.password !== password) {
           setLoading(false);
           setError('Incorrect password. Please verify your password and try again.');
           return;
         }
       } else {
-        // If logging in with demo credentials, enforce password check
         const isDemoAdmin = (inputUser === 'admin' || inputUser === 'admin@gmail.com');
         if (isDemoAdmin) {
           if (password !== 'admin123' && password !== 'password123') {
@@ -80,7 +108,6 @@ export default function Login() {
             return;
           }
         } else {
-          // If custom user not found in registered database and wrong password
           if (password !== 'admin123' && password !== 'password123' && password !== '123456') {
             setLoading(false);
             setError('Incorrect username or password. Please try again.');
@@ -89,7 +116,6 @@ export default function Login() {
         }
       }
 
-      // Success! Save session
       if (rememberMe) {
         localStorage.setItem('smartpo_remembered_credentials', JSON.stringify({ username: inputUser, password }));
       } else {
@@ -112,6 +138,48 @@ export default function Login() {
       setLoading(false);
       navigate('/dashboard');
     }, 400);
+  };
+
+  const handleSendResetEmail = (e) => {
+    e.preventDefault();
+    setResetError(null);
+    if (!resetEmail.trim()) {
+      setResetError('Please enter your email address.');
+      return;
+    }
+    setResetStep(2);
+  };
+
+  const handleUpdatePassword = (e) => {
+    e.preventDefault();
+    if (!newPassword.trim()) {
+      setResetError('Please enter a new password.');
+      return;
+    }
+
+    // Update password in registered users store
+    const usersStr = localStorage.getItem('smartpo_registered_users');
+    let registeredUsers = [];
+    try {
+      if (usersStr) registeredUsers = JSON.parse(usersStr);
+    } catch (e) {}
+
+    const cleanReset = resetEmail.trim().toLowerCase();
+    const index = registeredUsers.findIndex(u => u.email?.toLowerCase() === cleanReset || u.username?.toLowerCase() === cleanReset);
+
+    if (index !== -1) {
+      registeredUsers[index].password = newPassword;
+    } else {
+      registeredUsers.push({
+        username: cleanReset,
+        email: cleanReset,
+        password: newPassword,
+        name: cleanReset.split('@')[0]
+      });
+    }
+
+    localStorage.setItem('smartpo_registered_users', JSON.stringify(registeredUsers));
+    setResetStep(3);
   };
 
   return (
@@ -187,13 +255,13 @@ export default function Login() {
           <div className="form-group">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
               <label className="form-label" style={{ margin: 0 }}>Password</label>
-              <a 
-                href="#forgot" 
-                onClick={(e) => { e.preventDefault(); alert('Password reset instructions sent to your registered email.'); }}
-                style={{ fontSize: '0.8rem', color: '#2563EB', textDecoration: 'none', fontWeight: 700 }}
+              <button 
+                type="button"
+                onClick={() => { setResetEmail(username); setResetStep(1); setShowForgotPassword(true); }}
+                style={{ background: 'none', border: 'none', fontSize: '0.8rem', color: '#2563EB', fontWeight: 700, cursor: 'pointer' }}
               >
                 Forgot Password?
-              </a>
+              </button>
             </div>
             <div style={{ position: 'relative' }}>
               <Lock size={18} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
@@ -270,7 +338,7 @@ export default function Login() {
 
       </div>
 
-      {/* Google Account Selector Modal */}
+      {/* Google Account Selector Modal (Pulls registered users dynamically) */}
       {showGoogleChooser && (
         <div style={{
           position: 'fixed',
@@ -285,7 +353,7 @@ export default function Login() {
           zIndex: 1000,
           padding: '1.5rem'
         }}>
-          <div className="card" style={{ maxWidth: '420px', width: '100%', padding: '2rem', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+          <div className="card" style={{ maxWidth: '440px', width: '100%', padding: '2rem', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24">
@@ -305,11 +373,10 @@ export default function Login() {
             </div>
 
             <p style={{ fontSize: '0.85rem', color: '#64748B', marginBottom: '1.25rem' }}>
-              Select an email account to sign in to SmartPO:
+              Select an account to sign in to SmartPO:
             </p>
 
-            {/* Account List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto' }}>
               {googleAccounts.map((acc) => (
                 <div
                   key={acc.email}
@@ -325,8 +392,6 @@ export default function Login() {
                     backgroundColor: '#FFFFFF',
                     transition: 'all 0.15s ease'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
                 >
                   <div style={{
                     width: '38px',
@@ -349,6 +414,115 @@ export default function Login() {
                 </div>
               ))}
             </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '1.5rem'
+        }}>
+          <div className="card" style={{ maxWidth: '440px', width: '100%', padding: '2rem', borderRadius: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0F172A' }}>Reset Password</h3>
+              <button 
+                onClick={() => setShowForgotPassword(false)}
+                style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {resetError && (
+              <div style={{ backgroundColor: '#FEF2F2', padding: '0.65rem 0.85rem', borderRadius: '6px', color: '#DC2626', fontSize: '0.85rem', fontWeight: 600, marginBottom: '1rem' }}>
+                {resetError}
+              </div>
+            )}
+
+            {resetStep === 1 && (
+              <form onSubmit={handleSendResetEmail}>
+                <p style={{ fontSize: '0.875rem', color: '#64748B', marginBottom: '1.25rem' }}>
+                  Enter your registered account email address to receive a password reset verification link.
+                </p>
+                <div className="form-group">
+                  <label className="form-label">Registered Email</label>
+                  <div style={{ position: 'relative' }}>
+                    <Mail size={18} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                    <input 
+                      type="email" 
+                      className="form-input" 
+                      placeholder="name@company.com" 
+                      style={{ paddingLeft: '2.5rem' }}
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '0.8rem', fontSize: '0.9rem' }}>
+                  Send Verification Link
+                </button>
+              </form>
+            )}
+
+            {resetStep === 2 && (
+              <form onSubmit={handleUpdatePassword}>
+                <p style={{ fontSize: '0.875rem', color: '#059669', marginBottom: '1.25rem', fontWeight: 600 }}>
+                  ✓ Verification code sent to {resetEmail}. Set your new password below:
+                </p>
+                <div className="form-group">
+                  <label className="form-label">New Password</label>
+                  <div style={{ position: 'relative' }}>
+                    <Lock size={18} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                    <input 
+                      type="password" 
+                      className="form-input" 
+                      placeholder="Enter new password..." 
+                      style={{ paddingLeft: '2.5rem' }}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <button type="submit" className="btn btn-success" style={{ width: '100%', padding: '0.8rem', fontSize: '0.9rem' }}>
+                  Update & Save New Password
+                </button>
+              </form>
+            )}
+
+            {resetStep === 3 && (
+              <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+                <CheckCircle size={52} color="#10B981" style={{ margin: '0 auto 1rem' }} />
+                <h4 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0F172A' }}>Password Updated!</h4>
+                <p style={{ fontSize: '0.875rem', color: '#64748B', margin: '0.5rem 0 1.5rem' }}>
+                  Your password has been reset. You can now sign in with your new credentials.
+                </p>
+                <button 
+                  className="btn btn-primary" 
+                  style={{ width: '100%', padding: '0.8rem' }}
+                  onClick={() => {
+                    setPassword(newPassword);
+                    setUsername(resetEmail);
+                    setShowForgotPassword(false);
+                  }}
+                >
+                  Back to Sign In
+                </button>
+              </div>
+            )}
 
           </div>
         </div>

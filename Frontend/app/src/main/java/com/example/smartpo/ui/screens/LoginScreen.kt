@@ -38,19 +38,19 @@ fun LoginScreen(navController: NavController) {
     var password by remember { mutableStateOf("") }
     var rememberMe by remember { mutableStateOf(true) }
     var passwordVisible by remember { mutableStateOf(false) }
+
+    // Dialog States
     var showGoogleChooser by remember { mutableStateOf(false) }
+    var showForgotPasswordDialog by remember { mutableStateOf(false) }
 
-    val googleAccountsList = listOf(
-        GoogleAccountItem("admin@gmail.com", "SmartPO Administrator", "A", Color(0xFF2563EB)),
-        GoogleAccountItem("anusha@gmail.com", "Anusha (SmartPO Lead)", "A", Color(0xFFF97316)),
-        GoogleAccountItem("user@gmail.com", "Standard User Account", "U", Color(0xFF10B981))
-    )
+    // Forgot Password States
+    var resetEmailInput by remember { mutableStateOf("") }
+    var resetNewPassInput by remember { mutableStateOf("") }
+    var resetStep by remember { mutableStateOf(1) } // 1: Enter email, 2: New Password, 3: Done
 
-    val loginState by viewModel.loginState.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
+    val googleAccountsList = remember { mutableStateListOf<GoogleAccountItem>() }
 
-    // Auto-fill saved credentials from SharedPreferences
+    // Auto-fill saved credentials and load signed-up emails into Google Chooser
     LaunchedEffect(Unit) {
         val credPrefs = context.getSharedPreferences("smartpo_credentials", android.content.Context.MODE_PRIVATE)
         val savedUser = credPrefs.getString("saved_email", "") ?: ""
@@ -61,6 +61,22 @@ fun LoginScreen(navController: NavController) {
             username = savedUser
             password = savedPassword
             rememberMe = true
+        }
+
+        // Load default and dynamically registered emails into Google accounts chooser
+        googleAccountsList.clear()
+        googleAccountsList.add(GoogleAccountItem("admin@gmail.com", "SmartPO Administrator", "A", Color(0xFF2563EB)))
+        googleAccountsList.add(GoogleAccountItem("anusha@gmail.com", "Anusha (SmartPO Lead)", "A", Color(0xFFF97316)))
+
+        if (savedUser.isNotEmpty() && savedUser != "admin@gmail.com" && savedUser != "anusha@gmail.com") {
+            googleAccountsList.add(
+                GoogleAccountItem(
+                    email = savedUser,
+                    name = savedUser.substringBefore("@").replaceFirstChar { it.uppercase() },
+                    initial = savedUser.take(1).uppercase(),
+                    color = Color(0xFF10B981)
+                )
+            )
         }
     }
 
@@ -88,6 +104,10 @@ fun LoginScreen(navController: NavController) {
             }
         }
     }
+
+    val loginState by viewModel.loginState.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
 
     Box(
         modifier = Modifier
@@ -223,7 +243,9 @@ fun LoginScreen(navController: NavController) {
                     ) {
                         TextButton(
                             onClick = {
-                                Toast.makeText(context, "Password reset instructions sent to your registered email", Toast.LENGTH_LONG).show()
+                                resetEmailInput = username
+                                resetStep = 1
+                                showForgotPasswordDialog = true
                             },
                             contentPadding = PaddingValues(0.dp)
                         ) {
@@ -482,6 +504,115 @@ fun LoginScreen(navController: NavController) {
             confirmButton = {
                 TextButton(onClick = { showGoogleChooser = false }) {
                     Text("Cancel", color = Color.Gray)
+                }
+            }
+        )
+    }
+
+    // Forgot Password Reset Dialog
+    if (showForgotPasswordDialog) {
+        AlertDialog(
+            onDismissRequest = { showForgotPasswordDialog = false },
+            title = {
+                Text(
+                    text = "Reset Password",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF0F172A)
+                )
+            },
+            text = {
+                Column {
+                    if (resetStep == 1) {
+                        Text(
+                            text = "Enter your registered email address to receive password reset instructions:",
+                            fontSize = 13.sp,
+                            color = Color(0xFF64748B),
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                        OutlinedTextField(
+                            value = resetEmailInput,
+                            onValueChange = { resetEmailInput = it },
+                            label = { Text("Registered Email") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                    } else if (resetStep == 2) {
+                        Text(
+                            text = "✓ Reset code sent to $resetEmailInput. Enter your new password:",
+                            fontSize = 13.sp,
+                            color = Color(0xFF10B981),
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                        OutlinedTextField(
+                            value = resetNewPassInput,
+                            onValueChange = { resetNewPassInput = it },
+                            label = { Text("New Password") },
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                    } else {
+                        Text(
+                            text = "✓ Password updated successfully! You can now log in with your new password.",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF10B981)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                if (resetStep == 1) {
+                    Button(
+                        onClick = {
+                            if (resetEmailInput.isNotBlank()) {
+                                resetStep = 2
+                            } else {
+                                Toast.makeText(context, "Please enter your email", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A3C6E))
+                    ) {
+                        Text("Send Verification")
+                    }
+                } else if (resetStep == 2) {
+                    Button(
+                        onClick = {
+                            if (resetNewPassInput.isNotBlank()) {
+                                val credPrefs = context.getSharedPreferences("smartpo_registered_credentials", android.content.Context.MODE_PRIVATE)
+                                credPrefs.edit()
+                                    .putString("pass_${resetEmailInput.trim().lowercase()}", resetNewPassInput)
+                                    .apply()
+                                resetStep = 3
+                            } else {
+                                Toast.makeText(context, "Please enter a new password", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+                    ) {
+                        Text("Save New Password")
+                    }
+                } else {
+                    Button(
+                        onClick = {
+                            password = resetNewPassInput
+                            username = resetEmailInput
+                            showForgotPasswordDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A3C6E))
+                    ) {
+                        Text("Back to Sign In")
+                    }
+                }
+            },
+            dismissButton = {
+                if (resetStep < 3) {
+                    TextButton(onClick = { showForgotPasswordDialog = false }) {
+                        Text("Cancel", color = Color.Gray)
+                    }
                 }
             }
         )
