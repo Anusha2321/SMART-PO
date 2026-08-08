@@ -1,4 +1,5 @@
 const ORDERS_STORAGE_KEY = 'smartpo_orders';
+const DELETED_ORDERS_KEY = 'smartpo_deleted_orders';
 
 const DEFAULT_SEED_ORDERS = [
   {
@@ -33,24 +34,42 @@ const DEFAULT_SEED_ORDERS = [
   }
 ];
 
+export function getDeletedOrderIds() {
+  try {
+    const data = localStorage.getItem(DELETED_ORDERS_KEY);
+    if (data) {
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) {
+        return new Set(parsed);
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to parse deleted orders list', e);
+  }
+  return new Set();
+}
+
 export function getOrders() {
   return getLocalOrders();
 }
 
 export function getLocalOrders() {
+  const deletedSet = getDeletedOrderIds();
   try {
     const data = localStorage.getItem(ORDERS_STORAGE_KEY);
-    if (data) {
+    if (data !== null) {
       const parsed = JSON.parse(data);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+      if (Array.isArray(parsed)) {
+        return parsed.filter(o => !deletedSet.has(String(o.id)) && !deletedSet.has(String(o.order_number)));
       }
     }
   } catch (e) {
     console.warn('Failed to parse local orders', e);
   }
-  saveLocalOrders(DEFAULT_SEED_ORDERS);
-  return DEFAULT_SEED_ORDERS;
+
+  const initialSeed = DEFAULT_SEED_ORDERS.filter(o => !deletedSet.has(String(o.id)) && !deletedSet.has(String(o.order_number)));
+  saveLocalOrders(initialSeed);
+  return initialSeed;
 }
 
 export function saveLocalOrders(orders) {
@@ -81,7 +100,22 @@ export function updateLocalOrder(updatedOrder) {
 }
 
 export function deleteLocalOrder(orderId) {
+  const deletedSet = getDeletedOrderIds();
+  deletedSet.add(String(orderId));
+
   const current = getLocalOrders();
+  const target = current.find(o => o.id === orderId || o.order_number === orderId);
+  if (target) {
+    if (target.id) deletedSet.add(String(target.id));
+    if (target.order_number) deletedSet.add(String(target.order_number));
+  }
+
+  try {
+    localStorage.setItem(DELETED_ORDERS_KEY, JSON.stringify(Array.from(deletedSet)));
+  } catch (e) {
+    console.warn('Failed to save deleted order id', e);
+  }
+
   const filtered = current.filter(o => o.id !== orderId && o.order_number !== orderId);
   saveLocalOrders(filtered);
   return filtered;

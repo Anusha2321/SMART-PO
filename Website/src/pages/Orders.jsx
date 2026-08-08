@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Navbar from '../components/Navbar';
 import OrderDetailModal from '../components/OrderDetailModal';
 import { supabase } from '../lib/supabase';
-import { getLocalOrders, deleteLocalOrder } from '../lib/orderStore';
+import { getLocalOrders, deleteLocalOrder, getDeletedOrderIds } from '../lib/orderStore';
 import { FileText, Search, PlusCircle, ChevronRight, FileSpreadsheet, Download, Trash2, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { exportOrderToPdf, exportOrderToExcel } from '../lib/exportHelper';
@@ -21,7 +21,9 @@ export default function Orders() {
   const loadOrders = async () => {
     setLoading(true);
     const local = getLocalOrders();
-    setOrders(local);
+    const deletedSet = getDeletedOrderIds();
+    const activeLocal = local.filter(o => !deletedSet.has(String(o.id)) && !deletedSet.has(String(o.order_number)));
+    setOrders(activeLocal);
 
     try {
       const { data, error } = await supabase
@@ -30,11 +32,13 @@ export default function Orders() {
         .order('created_at', { ascending: false });
 
       if (!error && data && data.length > 0) {
-        const localIds = new Set(local.map(o => o.id));
-        const localPos = new Set(local.map(o => o.order_number));
-        const merged = [...local];
+        const localIds = new Set(activeLocal.map(o => String(o.id)));
+        const localPos = new Set(activeLocal.map(o => String(o.order_number)));
+        const merged = [...activeLocal];
         data.forEach(dbOrd => {
-          if (!localIds.has(dbOrd.id) && !localPos.has(dbOrd.order_number)) {
+          const dbId = String(dbOrd.id);
+          const dbPo = String(dbOrd.order_number);
+          if (!deletedSet.has(dbId) && !deletedSet.has(dbPo) && !localIds.has(dbId) && !localPos.has(dbPo)) {
             merged.push(dbOrd);
           }
         });
@@ -165,12 +169,18 @@ export default function Orders() {
                           <button 
                             className="btn btn-secondary" 
                             style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', borderColor: 'rgba(239, 68, 68, 0.4)' }}
-                            onClick={(e) => { 
+                            onClick={async (e) => { 
                               e.stopPropagation(); 
                               const poStr = o.order_number || o.id;
                               if (window.confirm(`Are you sure you want to delete Purchase Order ${poStr}?`)) {
                                 deleteLocalOrder(o.id);
-                                supabase.from('orders').delete().eq('id', o.id).then(() => {});
+                                if (o.order_number) deleteLocalOrder(o.order_number);
+                                try {
+                                  await supabase.from('orders').delete().eq('id', o.id);
+                                  if (o.order_number) {
+                                    await supabase.from('orders').delete().eq('order_number', o.order_number);
+                                  }
+                                } catch (err) {}
                                 loadOrders();
                               }
                             }}

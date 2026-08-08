@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage, t } from '../lib/languageStore';
-import { getOrders } from '../lib/orderStore';
+import { getOrders, getDeletedOrderIds } from '../lib/orderStore';
 import { formatRupee } from '../lib/exportHelper';
 
 export default function Dashboard() {
@@ -40,7 +40,9 @@ export default function Dashboard() {
 
     // 2. Fetch orders from local storage & Supabase
     const localOrders = getOrders();
-    setOrders(localOrders);
+    const deletedSet = getDeletedOrderIds();
+    const activeLocal = localOrders.filter(o => !deletedSet.has(String(o.id)) && !deletedSet.has(String(o.order_number)));
+    setOrders(activeLocal);
 
     try {
       const { data, error } = await supabase
@@ -49,7 +51,17 @@ export default function Dashboard() {
         .order('created_at', { ascending: false });
 
       if (!error && data && data.length > 0) {
-        setOrders(data);
+        const localIds = new Set(activeLocal.map(o => String(o.id)));
+        const localPos = new Set(activeLocal.map(o => String(o.order_number)));
+        const merged = [...activeLocal];
+        data.forEach(dbOrd => {
+          const dbId = String(dbOrd.id);
+          const dbPo = String(dbOrd.order_number);
+          if (!deletedSet.has(dbId) && !deletedSet.has(dbPo) && !localIds.has(dbId) && !localPos.has(dbPo)) {
+            merged.push(dbOrd);
+          }
+        });
+        setOrders(merged);
       }
     } catch (e) {
       console.warn('Orders cloud fetch error');
