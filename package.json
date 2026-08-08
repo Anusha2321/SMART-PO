@@ -10,5 +10,8 @@
     "test:web": "node Testing/Enterprise-Selenium/generate_selenium_excel.js",
     "test:security": "node Testing/Security-Audit/generate_security_excel.js",
     "test:load": "node Testing/Load-Testing/load_test_runner.js"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
   }
 }
