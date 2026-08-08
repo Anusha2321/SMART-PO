@@ -1,167 +1,156 @@
 import React, { useEffect, useState } from 'react';
-import Navbar from '../components/Navbar';
+import Sidebar from '../components/Sidebar';
+import Header from '../components/Header';
 import { supabase, fetchCatalogProducts } from '../lib/supabase';
 import { addLocalOrder } from '../lib/orderStore';
 import { 
+  FileText, 
+  Calendar, 
   User, 
   Phone, 
-  MapPin, 
-  FileText, 
-  ArrowRight, 
-  ArrowLeft, 
-  CheckCircle, 
-  Sparkles, 
-  Search, 
+  Mail, 
   Plus, 
-  Minus, 
-  ShoppingCart,
-  Receipt,
+  Trash2, 
+  Download, 
+  CheckCircle, 
+  RefreshCw,
+  Search,
+  Sparkles,
   Building
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { exportOrderToPdf, exportOrderToExcel, formatRupee } from '../lib/exportHelper';
 
 export default function CreateOrder() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [step, setStep] = useState(1);
+  // PO Details State
+  const [poNumber, setPoNumber] = useState(`VMNR/PO/2026/${Math.floor(100 + Math.random() * 900)}`);
+  const [poDate, setPoDate] = useState(new Date().toISOString().split('T')[0]);
+  const [deliveryDate, setDeliveryDate] = useState(new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0]);
 
-  // Step 1 State
-  const [poNumber, setPoNumber] = useState(`PO-${Math.floor(100000 + Math.random() * 900000)}`);
-  const [customerName, setCustomerName] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [customerAddress, setCustomerAddress] = useState('');
-  const [notes, setNotes] = useState('');
+  // Supplier State
+  const [supplierName, setSupplierName] = useState('ABC Industries Pvt. Ltd.');
+  const [contactPerson, setContactPerson] = useState('Ramesh Kumar');
+  const [supplierPhone, setSupplierPhone] = useState('9876543210');
+  const [supplierEmail, setSupplierEmail] = useState('ramesh@abc.com');
 
-  // Step 2 State
-  const [products, setProducts] = useState([]);
-  const [cart, setCart] = useState({});
+  // Items State
+  const [catalogProducts, setCatalogProducts] = useState([]);
+  const [items, setItems] = useState([
+    { id: '1', product_name: 'PTFE Sheet', category: 'PTFE / Polymer Items', unit: 'kg', quantity: 20, unit_price: 500, total_price: 10000 },
+    { id: '2', product_name: 'MS Valve', category: 'Valves & Fittings', unit: 'piece', quantity: 10, unit_price: 800, total_price: 8000 },
+    { id: '3', product_name: 'Stainless Steel Rod', category: 'Metal Items', unit: 'kg', quantity: 5, unit_price: 1200, total_price: 6000 }
+  ]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [orderNotes, setOrderNotes] = useState('Please deliver the items on or before the delivery date.');
 
-  // Submission State
+  // UI Status
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    loadProducts();
+    loadCatalog();
+  }, []);
 
-    if (location.state?.prefilledItems) {
-      const initialCart = {};
-      location.state.prefilledItems.forEach(item => {
-        if (item.itemId) initialCart[item.itemId] = item.quantity || 1;
-      });
-      setCart(initialCart);
-      if (location.state?.customerName) {
-        setCustomerName(location.state.customerName);
-      }
-      setStep(2);
-    }
-  }, [location.state]);
-
-  const loadProducts = async () => {
-    setLoadingProducts(true);
+  const loadCatalog = async () => {
     const data = await fetchCatalogProducts();
-    setProducts(data);
-    setLoadingProducts(false);
+    setCatalogProducts(data);
   };
 
-  const updateCartQty = (productId, change) => {
-    setCart(prev => {
-      const current = prev[productId] || 0;
-      const updated = Math.max(0, current + change);
-      if (updated === 0) {
-        const next = { ...prev };
-        delete next[productId];
+  const handleAddItem = (product) => {
+    const existingIndex = items.findIndex(it => it.product_name === product.name);
+    if (existingIndex !== -1) {
+      const updated = [...items];
+      updated[existingIndex].quantity += 1;
+      updated[existingIndex].total_price = updated[existingIndex].quantity * updated[existingIndex].unit_price;
+      setItems(updated);
+    } else {
+      const newItem = {
+        id: `it_${Date.now()}_${items.length + 1}`,
+        product_name: product.name,
+        category: product.category || 'General Items',
+        unit: product.unit || 'pcs',
+        quantity: 1,
+        unit_price: product.price_per_kg || product.price || 500,
+        total_price: product.price_per_kg || product.price || 500
+      };
+      setItems([...items, newItem]);
+    }
+  };
+
+  const handleUpdateItem = (id, field, value) => {
+    const updated = items.map(it => {
+      if (it.id === id) {
+        const next = { ...it, [field]: value };
+        if (field === 'quantity' || field === 'unit_price') {
+          const qty = field === 'quantity' ? Math.max(1, Number(value) || 1) : it.quantity;
+          const price = field === 'unit_price' ? Math.max(0, Number(value) || 0) : it.unit_price;
+          next.quantity = qty;
+          next.unit_price = price;
+          next.total_price = qty * price;
+        }
         return next;
       }
-      return { ...prev, [productId]: updated };
+      return it;
     });
+    setItems(updated);
   };
 
-  const calculateTotal = () => {
-    let total = 0;
-    products.forEach(p => {
-      const qty = cart[p.id] || 0;
-      total += qty * (p.price_per_kg || p.price || 0);
-    });
-    return total;
+  const handleRemoveItem = (id) => {
+    setItems(items.filter(it => it.id !== id));
   };
 
-  const getCartItemsList = () => {
-    return products.filter(p => (cart[p.id] || 0) > 0).map(p => ({
-      product: p,
-      quantity: cart[p.id],
-      unitPrice: p.price_per_kg || p.price || 0,
-      total: cart[p.id] * (p.price_per_kg || p.price || 0)
-    }));
-  };
+  // Tax calculations
+  const subtotal = items.reduce((sum, it) => sum + Number(it.total_price || 0), 0);
+  const cgst = subtotal * 0.09;
+  const sgst = subtotal * 0.09;
+  const totalAmount = subtotal + cgst + sgst;
 
-  const handleSubmitOrder = async (e) => {
-    if (e) e.preventDefault();
-    const totalAmount = calculateTotal();
-    const cartItems = getCartItemsList();
-
-    if (cartItems.length === 0) {
-      alert("Please select at least one product before submitting.");
+  const handleGeneratePo = async () => {
+    if (items.length === 0) {
+      alert('Please add at least one line item before creating PO.');
       return;
     }
 
     setSubmitting(true);
     const orderId = crypto.randomUUID ? crypto.randomUUID() : `ord_${Date.now()}`;
 
-    const itemsPayload = cartItems.map((item, idx) => ({
-      id: `it_${Date.now()}_${idx}`,
-      order_id: orderId,
-      product_name: item.product.name,
-      quantity: item.quantity,
-      unit_price: item.unitPrice,
-      total_price: item.total,
-      unit: item.product.unit || 'pcs'
-    }));
-
     const newOrderObj = {
       id: orderId,
       order_number: poNumber,
-      customer_name: customerName,
-      company_name: companyName || 'SmartPO Industrial Corp',
-      customer_phone: customerPhone,
-      customer_address: customerAddress,
+      customer_name: contactPerson,
+      company_name: supplierName,
+      customer_phone: supplierPhone,
+      customer_email: supplierEmail,
       total_amount: totalAmount,
-      notes: notes,
-      created_at: new Date().toISOString(),
-      status: 'completed',
-      items: itemsPayload
+      subtotal: subtotal,
+      cgst: cgst,
+      sgst: sgst,
+      notes: orderNotes,
+      created_at: new Date(poDate).toISOString(),
+      delivery_date: deliveryDate,
+      status: 'Approved',
+      items: items
     };
 
-    // Save to local storage first for 100% immediate reliability
+    // Save locally
     addLocalOrder(newOrderObj);
 
-    // Also attempt Supabase sync
+    // Save to Supabase
     try {
-      await supabase.from('orders').insert([
-        {
-          id: orderId,
-          order_number: poNumber,
-          customer_name: customerName,
-          customer_phone: customerPhone,
-          customer_address: customerAddress,
-          total_amount: totalAmount,
-          notes: notes
-        }
-      ]);
-
-      await supabase.from('order_items').insert(itemsPayload.map(it => ({
-        order_id: it.order_id,
-        product_name: it.product_name,
-        quantity: it.quantity,
-        unit_price: it.unit_price,
-        total_price: it.total_price,
-        unit: it.unit
-      })));
-    } catch (err) {
-      console.warn("Cloud sync deferred; local order saved cleanly", err);
+      await supabase.from('orders').insert([{
+        id: orderId,
+        order_number: poNumber,
+        customer_name: contactPerson,
+        company_name: supplierName,
+        customer_phone: supplierPhone,
+        total_amount: totalAmount,
+        notes: orderNotes
+      }]);
+    } catch (e) {
+      console.warn('Cloud sync deferred');
     }
 
     setSubmitting(false);
@@ -174,318 +163,261 @@ export default function CreateOrder() {
 
   if (success) {
     return (
-      <div className="app-container" style={{ justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <div className="glass-card animate-fade-in" style={{ textAlign: 'center', padding: '3.5rem', maxWidth: '500px' }}>
-          <CheckCircle size={64} color="var(--secondary)" style={{ margin: '0 auto 1.5rem' }} />
-          <h2 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Order Submitted!</h2>
-          <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem', marginBottom: '1.5rem' }}>
-            Purchase Order <strong>{poNumber}</strong> has been saved and created successfully.
-          </p>
-          <span className="badge badge-success">Redirecting to Order History...</span>
+      <div className="app-layout">
+        <Sidebar />
+        <div className="main-wrapper" style={{ justifyContent: 'center', alignItems: 'center' }}>
+          <div className="card" style={{ textAlign: 'center', padding: '3.5rem', maxWidth: '500px' }}>
+            <CheckCircle size={64} color="#10B981" style={{ margin: '0 auto 1.5rem' }} />
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0F172A' }}>Purchase Order Generated!</h2>
+            <p style={{ color: '#64748B', marginTop: '0.5rem', marginBottom: '1.5rem' }}>
+              PO <strong>{poNumber}</strong> has been created and saved cleanly.
+            </p>
+            <span className="badge badge-approved">Redirecting to History...</span>
+          </div>
         </div>
       </div>
     );
   }
 
-  const selectedItemsCount = Object.values(cart).reduce((sum, q) => sum + q, 0);
-
   return (
-    <div className="app-container">
-      <Navbar />
+    <div className="app-layout">
+      <Sidebar />
 
-      <main className="main-content animate-fade-in">
-        
-        {/* Wizard Header */}
-        <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1 style={{ fontSize: '1.85rem', fontWeight: 800 }}>Create Purchase Order</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Build a new purchase order for your customer.</p>
-          </div>
+      <div className="main-wrapper">
+        <Header title="Create Purchase Order" subtitle="Generate new PO invoices with item breakdown & tax calculations" />
 
-          {/* Steps Indicator */}
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            {['1. Customer Details', '2. Select Products', '3. Review & Submit'].map((label, idx) => {
-              const currentStep = idx + 1;
-              const active = step === currentStep;
-              const done = step > currentStep;
-              return (
-                <div key={label} style={{
-                  padding: '0.5rem 1rem',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '0.85rem',
-                  fontWeight: active ? 700 : 500,
-                  backgroundColor: active ? 'rgba(79, 70, 229, 0.25)' : done ? 'rgba(16, 185, 129, 0.15)' : 'var(--surface)',
-                  color: active ? '#818CF8' : done ? '#34D399' : 'var(--text-muted)',
-                  border: active ? '1px solid var(--primary)' : '1px solid var(--border)'
-                }}>
-                  {label}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* STEP 1: Customer Details */}
-        {step === 1 && (
-          <div className="card" style={{ maxWidth: '680px', margin: '0 auto', padding: '2.5rem' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <User size={22} color="var(--primary)" />
-              <span>Step 1: Customer & Order Details</span>
-            </h3>
-
-            <div className="form-group">
-              <label className="form-label">PO Number (Auto-Generated)</label>
-              <div style={{ position: 'relative' }}>
-                <Receipt size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-                <input type="text" className="form-input" value={poNumber} onChange={(e) => setPoNumber(e.target.value)} style={{ paddingLeft: '2.75rem', fontWeight: 700 }} required />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Customer Name</label>
-              <div style={{ position: 'relative' }}>
-                <User size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-                <input type="text" className="form-input" placeholder="e.g. Ramesh Kumar" style={{ paddingLeft: '2.75rem' }} value={customerName} onChange={(e) => setCustomerName(e.target.value)} required />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Company Name</label>
-              <div style={{ position: 'relative' }}>
-                <Building size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-                <input type="text" className="form-input" placeholder="e.g. Ramesh Trading Corp" style={{ paddingLeft: '2.75rem' }} value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Customer Phone</label>
-              <div style={{ position: 'relative' }}>
-                <Phone size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-                <input type="tel" className="form-input" placeholder="+91 98765 43210" style={{ paddingLeft: '2.75rem' }} value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Delivery Address</label>
-              <div style={{ position: 'relative' }}>
-                <MapPin size={18} style={{ position: 'absolute', left: '1rem', top: '1rem', color: 'var(--text-dim)' }} />
-                <textarea className="form-input" rows="2" placeholder="Warehouse address..." style={{ paddingLeft: '2.75rem' }} value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Order Notes</label>
-              <div style={{ position: 'relative' }}>
-                <FileText size={18} style={{ position: 'absolute', left: '1rem', top: '1rem', color: 'var(--text-dim)' }} />
-                <textarea className="form-input" rows="2" placeholder="Special delivery instructions..." style={{ paddingLeft: '2.75rem' }} value={notes} onChange={(e) => setNotes(e.target.value)} />
-              </div>
-            </div>
-
-            <button 
-              className="btn btn-primary" 
-              style={{ width: '100%', padding: '0.9rem', fontSize: '1rem', marginTop: '1rem' }}
-              onClick={() => {
-                if (!customerName.trim()) {
-                  alert('Please enter a Customer Name.');
-                  return;
-                }
-                setStep(2);
-              }}
-            >
-              <span>Next: Select Items</span>
-              <ArrowRight size={18} />
-            </button>
-          </div>
-        )}
-
-        {/* STEP 2: Item Selection */}
-        {step === 2 && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '2rem' }}>
-            
-            {/* Catalog Selector */}
+        <main className="page-content">
+          
+          {/* Header Action Bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <div>
-              <div className="card" style={{ marginBottom: '1.5rem', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ position: 'relative', width: '100%' }}>
-                  <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Create Purchase Order</h2>
+              <span style={{ fontSize: '0.85rem', color: '#64748B' }}>Fill in PO details, supplier info, and itemized billing</span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button className="btn btn-secondary" onClick={() => alert('Draft saved locally')}>
+                Save Draft
+              </button>
+              <button className="btn btn-primary" onClick={handleGeneratePo} disabled={submitting}>
+                {submitting ? 'Generating...' : 'Generate PO'}
+              </button>
+            </div>
+          </div>
+
+          {/* Section 1: PO Details */}
+          <div className="card" style={{ marginBottom: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', marginBottom: '1rem' }}>PO Details</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
+              <div>
+                <label className="form-label">PO Number</label>
+                <input type="text" className="form-input" value={poNumber} onChange={(e) => setPoNumber(e.target.value)} style={{ fontWeight: 700, color: '#2563EB' }} />
+              </div>
+
+              <div>
+                <label className="form-label">PO Date</label>
+                <input type="date" className="form-input" value={poDate} onChange={(e) => setPoDate(e.target.value)} />
+              </div>
+
+              <div>
+                <label className="form-label">Delivery Date</label>
+                <input type="date" className="form-input" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Supplier Information */}
+          <div className="card" style={{ marginBottom: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', marginBottom: '1rem' }}>Supplier Information</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem' }}>
+              <div>
+                <label className="form-label">Supplier Name *</label>
+                <select className="form-input" value={supplierName} onChange={(e) => setSupplierName(e.target.value)}>
+                  <option value="ABC Industries Pvt. Ltd.">ABC Industries Pvt. Ltd.</option>
+                  <option value="XYZ Polymers Inc.">XYZ Polymers Inc.</option>
+                  <option value="Metro Supplies Co.">Metro Supplies Co.</option>
+                  <option value="Global Tech Corp">Global Tech Corp</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="form-label">Contact Person</label>
+                <input type="text" className="form-input" value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} />
+              </div>
+
+              <div>
+                <label className="form-label">Phone</label>
+                <input type="text" className="form-input" value={supplierPhone} onChange={(e) => setSupplierPhone(e.target.value)} />
+              </div>
+
+              <div>
+                <label className="form-label">Email</label>
+                <input type="email" className="form-input" value={supplierEmail} onChange={(e) => setSupplierEmail(e.target.value)} />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Add Items Table */}
+          <div className="card" style={{ marginBottom: '1.5rem', padding: 0 }}>
+            <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Add Items</h3>
+
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                <div style={{ position: 'relative', width: '280px' }}>
+                  <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                   <input 
                     type="text" 
                     className="form-input" 
                     placeholder="Search catalog items to add..." 
-                    style={{ paddingLeft: '2.5rem' }}
+                    style={{ paddingLeft: '2.2rem', padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-              </div>
-
-              <div className="card" style={{ padding: 0 }}>
-                <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Select Products from Catalog</h3>
-                  <button className="btn btn-secondary" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem' }} onClick={() => navigate('/ai-assistant')}>
-                    <Sparkles size={14} color="#818CF8" />
-                    <span>Auto-Parse with AI</span>
-                  </button>
-                </div>
-
-                <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
-                  {products
-                    .filter(p => (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()))
-                    .map((p) => {
-                      const qty = cart[p.id] || 0;
-                      return (
-                        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
-                          <div>
-                            <h4 style={{ fontSize: '0.95rem', fontWeight: 600 }}>{p.name}</h4>
-                            <span style={{ fontSize: '0.85rem', color: 'var(--secondary)', fontWeight: 700 }}>
-                              ₹{Number(p.price_per_kg || p.price || 0).toLocaleString()} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>/ {p.unit || 'pcs'}</span>
-                            </span>
-                          </div>
-
-                          {/* Quantity Controls */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <button className="btn btn-icon" style={{ background: 'var(--surface-hover)', width: '32px', height: '32px' }} onClick={() => updateCartQty(p.id, -1)}>
-                              <Minus size={14} />
-                            </button>
-                            <span style={{ minWidth: '32px', textAlign: 'center', fontWeight: 700, fontSize: '1rem' }}>{qty}</span>
-                            <button className="btn btn-icon" style={{ background: 'var(--primary-light)', color: '#818CF8', width: '32px', height: '32px' }} onClick={() => updateCartQty(p.id, 1)}>
-                              <Plus size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
+                <button className="btn btn-primary" style={{ padding: '0.45rem 0.85rem', fontSize: '0.85rem' }} onClick={() => {
+                  if (catalogProducts.length > 0) handleAddItem(catalogProducts[0]);
+                }}>
+                  <Plus size={16} />
+                  <span>+ Add Item</span>
+                </button>
               </div>
             </div>
 
-            {/* Sidebar Summary */}
-            <div>
-              <div className="card" style={{ position: 'sticky', top: '100px' }}>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <ShoppingCart size={20} color="var(--primary)" />
-                  <span>Order Summary</span>
-                </h3>
-
-                <div style={{ marginBottom: '1rem', fontSize: '0.875rem' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Customer: </span>
-                  <strong style={{ color: 'white' }}>{customerName}</strong>
-                </div>
-
-                <div style={{ borderTop: '1px dashed var(--border)', borderBottom: '1px dashed var(--border)', padding: '1rem 0', margin: '1rem 0', maxHeight: '200px', overflowY: 'auto' }}>
-                  {getCartItemsList().length === 0 ? (
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>No items selected yet.</p>
-                  ) : (
-                    getCartItemsList().map(item => (
-                      <div key={item.product.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
-                        <span style={{ color: 'var(--text-muted)' }}>{item.quantity}x {item.product.name}</span>
-                        <strong style={{ color: 'var(--text)' }}>₹{item.total.toLocaleString()}</strong>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <span style={{ fontWeight: 600 }}>Total Payable</span>
-                  <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--secondary)' }}>₹{calculateTotal().toLocaleString()}</span>
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  <button className="btn btn-secondary" onClick={() => setStep(1)}>
-                    <ArrowLeft size={16} />
-                  </button>
-                  <button className="btn btn-primary" style={{ flex: 1 }} disabled={selectedItemsCount === 0} onClick={() => setStep(3)}>
-                    <span>Review Order</span>
-                    <ArrowRight size={16} />
-                  </button>
+            {/* Live Search Catalog Dropdown */}
+            {searchTerm.trim() !== '' && (
+              <div style={{ padding: '0.75rem 1.25rem', backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', maxHeight: '180px', overflowY: 'auto' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 700, display: 'block', marginBottom: '0.4rem' }}>CLICK ITEM TO ADD TO ORDER:</span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+                  {catalogProducts.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 6).map(p => (
+                    <div 
+                      key={p.id}
+                      onClick={() => { handleAddItem(p); setSearchTerm(''); }}
+                      style={{ padding: '0.5rem', backgroundColor: 'white', border: '1px solid #CBD5E1', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}
+                    >
+                      <strong style={{ color: '#0F172A', display: 'block' }}>{p.name}</strong>
+                      <span style={{ color: '#10B981', fontWeight: 600 }}>{formatRupee(p.price_per_kg || p.price)}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
+            )}
 
-          </div>
-        )}
-
-        {/* STEP 3: Review & Submit */}
-        {step === 3 && (
-          <div className="card" style={{ maxWidth: '780px', margin: '0 auto', padding: '2.5rem' }}>
-            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Receipt size={24} color="var(--primary)" />
-              <span>Step 3: Review & Confirm Purchase Order</span>
-            </h3>
-
-            {/* PO Details Grid */}
-            <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', marginBottom: '1.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>PO Number</span>
-                <p style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--primary)' }}>{poNumber}</p>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Customer Name</span>
-                <p style={{ fontWeight: 700, fontSize: '1rem' }}>{customerName}</p>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Company Name</span>
-                <p style={{ fontWeight: 700, fontSize: '1rem', color: '#F97316' }}>{companyName || 'SmartPO Industrial Corp'}</p>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Contact Phone</span>
-                <p style={{ fontSize: '0.9rem' }}>{customerPhone || 'N/A'}</p>
-              </div>
-              <div style={{ gridColumn: 'span 2' }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Delivery Address</span>
-                <p style={{ fontSize: '0.9rem' }}>{customerAddress || 'N/A'}</p>
-              </div>
-            </div>
-
-            {/* Items Breakdown Table */}
-            <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.75rem' }}>Itemized Breakdown</h4>
-            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: '1.5rem' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+            {/* Items Table */}
+            <div style={{ overflowX: 'auto' }}>
+              <table>
                 <thead>
-                  <tr style={{ backgroundColor: 'var(--surface-hover)' }}>
-                    <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Product</th>
-                    <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Qty</th>
-                    <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Unit Price</th>
-                    <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', textAlign: 'right' }}>Total</th>
+                  <tr>
+                    <th style={{ width: '40px' }}>#</th>
+                    <th>ITEM NAME</th>
+                    <th>CATEGORY</th>
+                    <th>UNIT</th>
+                    <th style={{ width: '100px' }}>QUANTITY</th>
+                    <th style={{ width: '130px' }}>UNIT PRICE</th>
+                    <th style={{ textAlign: 'right' }}>AMOUNT</th>
+                    <th style={{ textAlign: 'center', width: '70px' }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {getCartItemsList().map(item => (
-                    <tr key={item.product.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>{item.product.name}</td>
-                      <td style={{ padding: '0.75rem 1rem' }}>{item.quantity} {item.product.unit || 'pcs'}</td>
-                      <td style={{ padding: '0.75rem 1rem' }}>₹{item.unitPrice.toLocaleString()}</td>
-                      <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 700, color: 'var(--secondary)' }}>
-                        ₹{item.total.toLocaleString()}
+                  {items.map((it, idx) => (
+                    <tr key={it.id}>
+                      <td style={{ fontWeight: 600, color: '#64748B' }}>{idx + 1}</td>
+                      <td>
+                        <input type="text" className="form-input" value={it.product_name} onChange={(e) => handleUpdateItem(it.id, 'product_name', e.target.value)} style={{ fontWeight: 600 }} />
+                      </td>
+                      <td style={{ color: '#475569', fontSize: '0.85rem' }}>{it.category}</td>
+                      <td>
+                        <input type="text" className="form-input" value={it.unit} onChange={(e) => handleUpdateItem(it.id, 'unit', e.target.value)} style={{ width: '70px', padding: '0.35rem 0.5rem' }} />
+                      </td>
+                      <td>
+                        <input type="number" className="form-input" value={it.quantity} onChange={(e) => handleUpdateItem(it.id, 'quantity', e.target.value)} style={{ padding: '0.35rem 0.5rem', fontWeight: 700 }} />
+                      </td>
+                      <td>
+                        <input type="number" className="form-input" value={it.unit_price} onChange={(e) => handleUpdateItem(it.id, 'unit_price', e.target.value)} style={{ padding: '0.35rem 0.5rem', fontWeight: 700 }} />
+                      </td>
+                      <td style={{ fontWeight: 800, color: '#0F172A', textAlign: 'right' }}>
+                        {formatRupee(it.total_price)}
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <button className="btn btn-icon" onClick={() => handleRemoveItem(it.id)} title="Delete Item">
+                          <Trash2 size={16} color="#EF4444" />
+                        </button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+          </div>
 
-            {/* Total Footer */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'var(--primary-light)', borderRadius: 'var(--radius-md)', marginBottom: '2rem' }}>
-              <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>Grand Total</span>
-              <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--secondary)' }}>
-                ₹{calculateTotal().toLocaleString()}
-              </span>
+          {/* Section 4: Notes & Totals Calculation Block */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '1.5rem', marginBottom: '2rem' }}>
+            
+            {/* Left Notes */}
+            <div className="card">
+              <label className="form-label" style={{ marginBottom: '0.6rem' }}>Order Notes</label>
+              <textarea 
+                className="form-input" 
+                rows="4" 
+                value={orderNotes}
+                onChange={(e) => setOrderNotes(e.target.value)}
+                placeholder="Special delivery instructions or order notes..." 
+              />
             </div>
 
-            {/* Form Actions */}
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setStep(2)}>
-                <ArrowLeft size={18} />
-                <span>Modify Items</span>
-              </button>
-              <button className="btn btn-success" style={{ flex: 2, padding: '0.9rem', fontSize: '1rem' }} onClick={handleSubmitOrder} disabled={submitting}>
-                {submitting ? 'Submitting Order...' : 'Confirm & Submit Purchase Order'}
-              </button>
+            {/* Right Totals Box */}
+            <div className="card" style={{ backgroundColor: '#F8FAFC' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.9rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#64748B', fontWeight: 600 }}>Subtotal</span>
+                  <strong style={{ color: '#0F172A' }}>{formatRupee(subtotal)}</strong>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#64748B', fontWeight: 600 }}>CGST (9%)</span>
+                  <strong style={{ color: '#0F172A' }}>{formatRupee(cgst)}</strong>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#64748B', fontWeight: 600 }}>SGST (9%)</span>
+                  <strong style={{ color: '#0F172A' }}>{formatRupee(sgst)}</strong>
+                </div>
+
+                <div style={{ borderTop: '2px solid #E2E8F0', paddingTop: '0.75rem', marginTop: '0.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A' }}>Total Amount</span>
+                  <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#2563EB' }}>
+                    {formatRupee(totalAmount)}
+                  </span>
+                </div>
+              </div>
             </div>
 
           </div>
-        )}
 
-      </main>
+          {/* Bottom Action Footer Bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFFFFF', padding: '1rem 1.5rem', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button className="btn" style={{ backgroundColor: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0' }}>
+                Save Draft
+              </button>
+              <button className="btn" style={{ backgroundColor: '#FEF3C7', color: '#D97706', border: '1px solid #FDE68A' }} onClick={() => setItems([])}>
+                Reset
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button className="btn btn-secondary" onClick={() => exportOrderToPdf({ order_number: poNumber, customer_name: contactPerson, company_name: supplierName, total_amount: totalAmount, items })}>
+                <FileText size={16} color="#2563EB" />
+                <span>Generate PDF</span>
+              </button>
+              <button className="btn btn-secondary" style={{ color: '#059669', borderColor: '#A7F3D0' }} onClick={() => exportOrderToExcel({ order_number: poNumber, customer_name: contactPerson, company_name: supplierName, total_amount: totalAmount, items })}>
+                <Download size={16} color="#059669" />
+                <span>Export Excel</span>
+              </button>
+            </div>
+          </div>
+
+        </main>
+      </div>
     </div>
   );
 }

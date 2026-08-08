@@ -1,161 +1,219 @@
 import React, { useEffect, useState } from 'react';
-import Navbar from '../components/Navbar';
-import AddItemModal from '../components/AddItemModal';
-import EditItemModal from '../components/EditItemModal';
+import Sidebar from '../components/Sidebar';
+import Header from '../components/Header';
 import { fetchCatalogProducts } from '../lib/supabase';
-import { Search, PlusCircle, Package, Edit3, Filter } from 'lucide-react';
-import { useLanguage, t } from '../lib/languageStore';
+import { Search, Plus, Filter, Edit, Trash2, ChevronLeft, ChevronRight, Package } from 'lucide-react';
+import { formatRupee } from '../lib/exportHelper';
 
 export default function Catalog() {
-  const [lang] = useLanguage();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('ALL');
-
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [unitFilter, setUnitFilter] = useState('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
-    loadProducts();
+    loadCatalog();
   }, []);
 
-  const loadProducts = async () => {
+  const loadCatalog = async () => {
     setLoading(true);
     const data = await fetchCatalogProducts();
     setProducts(data);
     setLoading(false);
   };
 
-  const categories = ['ALL', ...Array.from(new Set(products.map(p => p.category || 'OTHERS')))];
+  const categoriesList = Array.from(new Set(products.map(p => p.category || 'OTHERS')));
+  const unitsList = Array.from(new Set(products.map(p => p.unit || 'pcs')));
 
   const filteredProducts = products.filter(p => {
-    const matchesSearch = (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (p.category || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCat = selectedCategory === 'ALL' || (p.category || '').toUpperCase() === selectedCategory.toUpperCase();
-    return matchesSearch && matchesCat;
+    const matchesSearch = (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (p.id || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCat = categoryFilter === 'ALL' || p.category === categoryFilter;
+    const matchesUnit = unitFilter === 'ALL' || p.unit === unitFilter;
+    return matchesSearch && matchesCat && matchesUnit;
   });
 
-  const handleItemAdded = (newProduct) => {
-    setProducts([newProduct, ...products]);
-  };
-
-  const handleItemUpdated = (updatedProduct) => {
-    setProducts(products.map(p => p.id === updatedProduct.id ? updatedProduct : p));
-  };
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage) || 1;
+  const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="app-container">
-      <Navbar />
+    <div className="app-layout">
+      <Sidebar />
 
-      <main className="main-content animate-fade-in">
-        
-        {/* Header */}
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.3rem' }}>
-              <Package size={24} color="var(--primary)" />
-              <h1 style={{ fontSize: '1.85rem', fontWeight: 800 }}>Product Catalog</h1>
-            </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Browse, filter, and manage catalog items.</p>
-          </div>
+      <div className="main-wrapper">
+        <Header title="Items Management" subtitle="Manage product catalog items, prices, and units" />
 
-          <button className="btn btn-primary" onClick={() => setIsAddOpen(true)}>
-            <PlusCircle size={18} />
-            <span>Add New Product</span>
-          </button>
-        </header>
-
-        {/* Filter Bar */}
-        <div className="card" style={{ marginBottom: '1.5rem', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <main className="page-content">
           
-          {/* Category Pills */}
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                style={{
-                  padding: '0.45rem 1rem',
-                  borderRadius: '9999px',
-                  fontSize: '0.85rem',
-                  fontWeight: selectedCategory === cat ? 700 : 500,
-                  border: selectedCategory === cat ? '1px solid var(--primary)' : '1px solid var(--border)',
-                  backgroundColor: selectedCategory === cat ? 'rgba(79, 70, 229, 0.2)' : 'transparent',
-                  color: selectedCategory === cat ? '#818CF8' : 'var(--text-muted)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
+          {/* Header Action Bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Catalog Items</h2>
+              <span style={{ fontSize: '0.85rem', color: '#64748B' }}>
+                Showing {filteredProducts.length} total products
+              </span>
+            </div>
+
+            <button className="btn btn-primary" onClick={() => alert('New Item Modal triggered')}>
+              <Plus size={18} />
+              <span>Add New Item</span>
+            </button>
+          </div>
+
+          {/* Search & Filter Bar */}
+          <div className="card" style={{ marginBottom: '1.5rem', padding: '1rem 1.25rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              
+              {/* Search Box */}
+              <div style={{ position: 'relative', flex: 1, minWidth: '260px' }}>
+                <Search size={18} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="Search items by name, category, or code..." 
+                  style={{ paddingLeft: '2.4rem' }}
+                  value={searchTerm}
+                  onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                />
+              </div>
+
+              {/* Category Filter */}
+              <select 
+                className="form-input" 
+                style={{ width: '200px' }}
+                value={categoryFilter}
+                onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
               >
-                {cat}
+                <option value="ALL">All Categories</option>
+                {categoriesList.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+
+              {/* Unit Filter */}
+              <select 
+                className="form-input" 
+                style={{ width: '150px' }}
+                value={unitFilter}
+                onChange={(e) => { setUnitFilter(e.target.value); setCurrentPage(1); }}
+              >
+                <option value="ALL">All Units</option>
+                {unitsList.map(u => <option key={u} value={u}>{u}</option>)}
+              </select>
+
+              <button className="btn btn-secondary">
+                <Filter size={16} />
+                <span>Filter</span>
               </button>
-            ))}
+
+            </div>
           </div>
 
-          {/* Search Input */}
-          <div style={{ position: 'relative', width: '280px' }}>
-            <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-            <input 
-              type="text" 
-              className="form-input" 
-              placeholder={t('search_catalog')} 
-              style={{ paddingLeft: '2.5rem', padding: '0.55rem 1rem 0.55rem 2.5rem', fontSize: '0.875rem' }}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          {/* Items Table */}
+          <div className="card" style={{ padding: 0 }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>ITEM CODE</th>
+                    <th>ITEM NAME</th>
+                    <th>CATEGORY</th>
+                    <th>UNIT</th>
+                    <th>UNIT PRICE</th>
+                    <th style={{ textAlign: 'right' }}>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr><td colSpan="6" style={{ padding: '2.5rem', textAlign: 'center', color: '#64748B' }}>Loading products catalog...</td></tr>
+                  ) : paginatedProducts.length === 0 ? (
+                    <tr><td colSpan="6" style={{ padding: '2.5rem', textAlign: 'center', color: '#64748B' }}>No products found matching filters.</td></tr>
+                  ) : (
+                    paginatedProducts.map((p, idx) => (
+                      <tr key={p.id || idx}>
+                        <td style={{ fontWeight: 700, color: '#2563EB', fontSize: '0.85rem' }}>
+                          {`ITM${String(p.id || idx + 1).padStart(3, '0')}`}
+                        </td>
+                        <td style={{ fontWeight: 700, color: '#0F172A' }}>
+                          {p.name}
+                        </td>
+                        <td style={{ color: '#475569', fontWeight: 600 }}>
+                          {p.category || 'PTFE / Polymer Items'}
+                        </td>
+                        <td style={{ color: '#64748B' }}>
+                          {p.unit || 'kg'}
+                        </td>
+                        <td style={{ fontWeight: 700, color: '#10B981' }}>
+                          {formatRupee(p.price_per_kg || p.price || 500)}
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                            <button className="btn btn-icon" title="Edit Item">
+                              <Edit size={16} color="#2563EB" />
+                            </button>
+                            <button className="btn btn-icon" title="Delete Item">
+                              <Trash2 size={16} color="#EF4444" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Footer */}
+            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.85rem', color: '#64748B' }}>
+                Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredProducts.length)} of {filteredProducts.length} items
+              </span>
+
+              <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                <button 
+                  className="btn btn-secondary" 
+                  style={{ padding: '0.4rem 0.6rem' }} 
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft size={16} />
+                </button>
+
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + 1).map(pNum => (
+                  <button
+                    key={pNum}
+                    onClick={() => setCurrentPage(pNum)}
+                    style={{
+                      padding: '0.4rem 0.75rem',
+                      borderRadius: '6px',
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      border: pNum === currentPage ? 'none' : '1px solid #E2E8F0',
+                      backgroundColor: pNum === currentPage ? '#2563EB' : '#FFFFFF',
+                      color: pNum === currentPage ? '#FFFFFF' : '#334155',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {pNum}
+                  </button>
+                ))}
+
+                <button 
+                  className="btn btn-secondary" 
+                  style={{ padding: '0.4rem 0.6rem' }} 
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+
           </div>
 
-        </div>
-
-        {/* Catalog Table */}
-        <div className="card" style={{ padding: 0 }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ backgroundColor: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
-                  <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: 600 }}>Product Name</th>
-                  <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: 600 }}>Category</th>
-                  <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: 600 }}>Price</th>
-                  <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: 600 }}>Unit</th>
-                  <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: 600, textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan="5" style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading product catalog...</td></tr>
-                ) : filteredProducts.length === 0 ? (
-                  <tr><td colSpan="5" style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>No products found matching criteria.</td></tr>
-                ) : (
-                  filteredProducts.map((p) => (
-                    <tr key={p.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background-color 0.2s' }}>
-                      <td style={{ padding: '1rem 1.5rem', fontWeight: 600 }}>{p.name}</td>
-                      <td style={{ padding: '1rem 1.5rem' }}>
-                        <span className="badge badge-primary">
-                          {p.category || 'OTHERS'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '1rem 1.5rem', fontWeight: 700, color: 'var(--secondary)' }}>
-                        ₹{Number(p.price_per_kg || p.price || 0).toLocaleString()}
-                      </td>
-                      <td style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)' }}>{p.unit || 'pcs'}</td>
-                      <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
-                        <button className="btn btn-icon" onClick={() => setEditingProduct(p)} title="Edit Item">
-                          <Edit3 size={18} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-      </main>
-
-      {/* Modals */}
-      <AddItemModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onItemAdded={handleItemAdded} />
-      <EditItemModal isOpen={!!editingProduct} onClose={() => setEditingProduct(null)} product={editingProduct} onItemUpdated={handleItemUpdated} />
+        </main>
+      </div>
     </div>
   );
 }

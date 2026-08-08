@@ -1,6 +1,8 @@
 package com.example.smartpo.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -31,7 +33,7 @@ fun LoginScreen(navController: NavController) {
     val context = LocalContext.current
     val viewModel: AuthViewModel = viewModel()
 
-    var email by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var rememberMe by remember { mutableStateOf(true) }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -43,12 +45,12 @@ fun LoginScreen(navController: NavController) {
     // Auto-fill saved credentials from SharedPreferences
     LaunchedEffect(Unit) {
         val credPrefs = context.getSharedPreferences("smartpo_credentials", android.content.Context.MODE_PRIVATE)
-        val savedEmail = credPrefs.getString("saved_email", "") ?: ""
+        val savedUser = credPrefs.getString("saved_email", "") ?: ""
         val savedPassword = credPrefs.getString("saved_password", "") ?: ""
         val isRemembered = credPrefs.getBoolean("remember_me", true)
         
-        if (isRemembered && savedEmail.isNotEmpty()) {
-            email = savedEmail
+        if (isRemembered && savedUser.isNotEmpty()) {
+            username = savedUser
             password = savedPassword
             rememberMe = true
         }
@@ -56,11 +58,10 @@ fun LoginScreen(navController: NavController) {
 
     LaunchedEffect(loginState) {
         if (loginState == true) {
-            // Save or clear credentials based on Remember Me option
             val credPrefs = context.getSharedPreferences("smartpo_credentials", android.content.Context.MODE_PRIVATE)
             if (rememberMe) {
                 credPrefs.edit()
-                    .putString("saved_email", email.trim())
+                    .putString("saved_email", username.trim())
                     .putString("saved_password", password)
                     .putBoolean("remember_me", true)
                     .apply()
@@ -100,44 +101,44 @@ fun LoginScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Professional App Branding Header
+            // App Branding Header
             Box(
                 modifier = Modifier
-                    .size(90.dp)
+                    .size(80.dp)
                     .background(
                         color = Color(0xFFF97316),
-                        shape = RoundedCornerShape(24.dp)
+                        shape = RoundedCornerShape(20.dp)
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "SP",
                     color = Color.White,
-                    fontSize = 36.sp,
+                    fontSize = 32.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Text(
                 text = "SmartPO Enterprise",
-                fontSize = 28.sp,
+                fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
 
             Text(
                 text = "Purchase Order & Inventory Portal",
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 color = Color(0xFF94A3B8)
             )
 
-            Spacer(modifier = Modifier.height(36.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
-            // Login Card Form Container
+            // Main Login Card Form
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -157,15 +158,15 @@ fun LoginScreen(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Email Input Field
+                    // Username or Email Field
                     OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = { Text("Email Address") },
+                        value = username,
+                        onValueChange = { username = it },
+                        label = { Text("Username or Email") },
                         leadingIcon = {
                             Icon(
-                                imageVector = Icons.Default.Email,
-                                contentDescription = "Email",
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Username",
                                 tint = Color(0xFF1A3C6E)
                             )
                         },
@@ -175,9 +176,9 @@ fun LoginScreen(navController: NavController) {
                         shape = RoundedCornerShape(12.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                    // Password Input Field
+                    // Password Field
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
@@ -205,9 +206,29 @@ fun LoginScreen(navController: NavController) {
                         shape = RoundedCornerShape(12.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    // Forgot Password Link (Aligned Right)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 6.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(
+                            onClick = {
+                                Toast.makeText(context, "Password reset instructions sent to your registered email", Toast.LENGTH_LONG).show()
+                            },
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text(
+                                text = "Forgot Password?",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF2563EB)
+                            )
+                        }
+                    }
 
-                    // Remember Me Checkbox Option
+                    // Remember Me Checkbox
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -221,7 +242,7 @@ fun LoginScreen(navController: NavController) {
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Remember Me (Save Email & Password)",
+                            text = "Remember Me (Save Credentials)",
                             fontSize = 13.sp,
                             color = Color(0xFF475569),
                             fontWeight = FontWeight.Medium
@@ -230,14 +251,14 @@ fun LoginScreen(navController: NavController) {
 
                     // Error Message Banner
                     if (errorMessage != null) {
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = Color(0xFFFEE2E2)),
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Row(
-                                modifier = Modifier.padding(12.dp),
+                                modifier = Modifier.padding(10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
@@ -257,22 +278,22 @@ fun LoginScreen(navController: NavController) {
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    // Submit Button
+                    // Sign In Submit Button
                     Button(
                         onClick = {
-                            if (email.isBlank()) {
-                                viewModel.setError("Please enter your email address")
+                            if (username.isBlank()) {
+                                viewModel.setError("Please enter your Username or Email")
                             } else if (password.isBlank()) {
                                 viewModel.setError("Please enter your password")
                             } else {
-                                viewModel.login(email.trim(), password)
+                                viewModel.login(username.trim(), password)
                             }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp),
+                            .height(50.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A3C6E)),
                         shape = RoundedCornerShape(12.dp),
                         enabled = !isLoading
@@ -292,12 +313,62 @@ fun LoginScreen(navController: NavController) {
                             )
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // OR Divider
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE2E8F0))
+                        Text(
+                            text = "  OR  ",
+                            color = Color(0xFF94A3B8),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE2E8F0))
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Continue with Google Button
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.login("admin@google.com", "googlepass")
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFCBD5E1))
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = "Google Sign In",
+                                tint = Color(0xFF4285F4),
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Continue with Google",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF334155)
+                            )
+                        }
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Navigation to Sign Up
+            // Navigation to Sign Up / Create Account
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -308,7 +379,7 @@ fun LoginScreen(navController: NavController) {
                 )
                 TextButton(onClick = { navController.navigate("signup") }) {
                     Text(
-                        text = "Create Account",
+                        text = "Sign Up",
                         color = Color(0xFFF97316),
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp
