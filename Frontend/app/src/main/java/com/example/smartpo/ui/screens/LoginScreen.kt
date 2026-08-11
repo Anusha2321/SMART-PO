@@ -27,8 +27,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.smartpo.viewmodel.AuthViewModel
 
-data class GoogleAccountItem(val email: String, val name: String, val initial: String, val color: Color)
-
 @Composable
 fun LoginScreen(navController: NavController) {
     val context = LocalContext.current
@@ -39,21 +37,11 @@ fun LoginScreen(navController: NavController) {
     var rememberMe by remember { mutableStateOf(true) }
     var passwordVisible by remember { mutableStateOf(false) }
 
-    // Dialog States
-    var showGoogleChooser by remember { mutableStateOf(false) }
-    var showForgotPasswordDialog by remember { mutableStateOf(false) }
+    val loginState by viewModel.loginState.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
 
-    // Forgot Password OTP States (1: Email, 2: 6-Digit OTP, 3: New Password, 4: Done)
-    var resetEmailInput by remember { mutableStateOf("") }
-    var generatedOtp by remember { mutableStateOf("") }
-    var inputOtp by remember { mutableStateOf("") }
-    var resetNewPassInput by remember { mutableStateOf("") }
-    var resetConfirmPassInput by remember { mutableStateOf("") }
-    var resetStep by remember { mutableStateOf(1) }
-
-    val googleAccountsList = remember { mutableStateListOf<GoogleAccountItem>() }
-
-    // Auto-fill saved credentials and load signed-up emails into Google Chooser
+    // Auto-fill saved credentials if available
     LaunchedEffect(Unit) {
         val credPrefs = context.getSharedPreferences("smartpo_credentials", android.content.Context.MODE_PRIVATE)
         val savedUser = credPrefs.getString("saved_email", "") ?: ""
@@ -65,27 +53,7 @@ fun LoginScreen(navController: NavController) {
             password = savedPassword
             rememberMe = true
         }
-
-        // Load default and dynamically registered emails into Google accounts chooser
-        googleAccountsList.clear()
-        googleAccountsList.add(GoogleAccountItem("anushabandiatmakur2005@gmail.com", "Anusha (Registered)", "A", Color(0xFF2563EB)))
-        googleAccountsList.add(GoogleAccountItem("admin@gmail.com", "SmartPO Administrator", "A", Color(0xFFF97316)))
-
-        if (savedUser.isNotEmpty() && savedUser != "admin@gmail.com" && savedUser != "anushabandiatmakur2005@gmail.com") {
-            googleAccountsList.add(
-                GoogleAccountItem(
-                    email = savedUser,
-                    name = savedUser.substringBefore("@").replaceFirstChar { it.uppercase() },
-                    initial = savedUser.take(1).uppercase(),
-                    color = Color(0xFF10B981)
-                )
-            )
-        }
     }
-
-    val loginState by viewModel.loginState.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
 
     LaunchedEffect(loginState) {
         if (loginState == true) {
@@ -111,6 +79,18 @@ fun LoginScreen(navController: NavController) {
             }
         }
     }
+
+    // High-contrast text colors for input fields
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color(0xFF0F172A),
+        unfocusedTextColor = Color(0xFF0F172A),
+        focusedContainerColor = Color(0xFFF8FAFC),
+        unfocusedContainerColor = Color(0xFFF8FAFC),
+        focusedLabelColor = Color(0xFF2563EB),
+        unfocusedLabelColor = Color(0xFF64748B),
+        focusedBorderColor = Color(0xFF2563EB),
+        unfocusedBorderColor = Color(0xFFCBD5E1)
+    )
 
     Box(
         modifier = Modifier
@@ -201,6 +181,7 @@ fun LoginScreen(navController: NavController) {
                                 tint = Color(0xFF1A3C6E)
                             )
                         },
+                        colors = textFieldColors,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -230,6 +211,7 @@ fun LoginScreen(navController: NavController) {
                                 )
                             }
                         },
+                        colors = textFieldColors,
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         modifier = Modifier.fillMaxWidth(),
@@ -237,30 +219,7 @@ fun LoginScreen(navController: NavController) {
                         shape = RoundedCornerShape(12.dp)
                     )
 
-                    // Forgot Password Link (Aligned Right)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 4.dp),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(
-                            onClick = {
-                                resetEmailInput = if (username.isNotBlank()) username else "anushabandiatmakur2005@gmail.com"
-                                inputOtp = ""
-                                resetStep = 1
-                                showForgotPasswordDialog = true
-                            },
-                            contentPadding = PaddingValues(0.dp)
-                        ) {
-                            Text(
-                                text = "Forgot Password?",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF2563EB)
-                            )
-                        }
-                    }
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     // Remember Me Checkbox
                     Row(
@@ -312,7 +271,7 @@ fun LoginScreen(navController: NavController) {
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     // Sign In Submit Button
                     Button(
@@ -347,56 +306,6 @@ fun LoginScreen(navController: NavController) {
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // OR Divider
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE2E8F0))
-                        Text(
-                            text = "  OR  ",
-                            color = Color(0xFF94A3B8),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE2E8F0))
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Continue with Google Button
-                    OutlinedButton(
-                        onClick = {
-                            showGoogleChooser = true
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFCBD5E1))
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AccountCircle,
-                                contentDescription = "Google Sign In",
-                                tint = Color(0xFF4285F4),
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "Continue with Google",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF334155)
-                            )
-                        }
-                    }
                 }
             }
 
@@ -423,246 +332,5 @@ fun LoginScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
         }
-    }
-
-    // Google Account Selection Dialog
-    if (showGoogleChooser) {
-        AlertDialog(
-            onDismissRequest = { showGoogleChooser = false },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.AccountCircle,
-                        contentDescription = "Google",
-                        tint = Color(0xFF4285F4),
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Choose a Google Account",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A)
-                    )
-                }
-            },
-            text = {
-                Column {
-                    Text(
-                        text = "Select an email account to sign in to SmartPO:",
-                        fontSize = 13.sp,
-                        color = Color(0xFF64748B),
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
-
-                    googleAccountsList.forEach { acc ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
-                                .clickable {
-                                    showGoogleChooser = false
-                                    username = acc.email
-                                    viewModel.login(acc.email, "admin123")
-                                },
-                            shape = RoundedCornerShape(10.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .background(acc.color, shape = RoundedCornerShape(18.dp)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = acc.initial,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(
-                                        text = acc.name,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF0F172A)
-                                    )
-                                    Text(
-                                        text = acc.email,
-                                        fontSize = 12.sp,
-                                        color = Color(0xFF64748B)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showGoogleChooser = false }) {
-                    Text("Cancel", color = Color.Gray)
-                }
-            }
-        )
-    }
-
-    // Forgot Password Reset Dialog with 6-Digit OTP Code Verification
-    if (showForgotPasswordDialog) {
-        AlertDialog(
-            onDismissRequest = { showForgotPasswordDialog = false },
-            title = {
-                Text(
-                    text = "Reset Password",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A)
-                )
-            },
-            text = {
-                Column {
-                    if (resetStep == 1) {
-                        Text(
-                            text = "Enter your registered email to receive your 6-digit verification code:",
-                            fontSize = 13.sp,
-                            color = Color(0xFF64748B),
-                            modifier = Modifier.padding(bottom = 12.dp)
-                        )
-                        OutlinedTextField(
-                            value = resetEmailInput,
-                            onValueChange = { resetEmailInput = it },
-                            label = { Text("Registered Email") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                    } else if (resetStep == 2) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF6FF))
-                        ) {
-                            Column(modifier = Modifier.padding(10.dp)) {
-                                Text(
-                                    text = "✓ Verification Code Sent!",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = Color(0xFF2563EB)
-                                )
-                                Text(
-                                    text = "Code for $resetEmailInput: $generatedOtp",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFF1D4ED8)
-                                )
-                            }
-                        }
-
-                        OutlinedTextField(
-                            value = inputOtp,
-                            onValueChange = { if (it.length <= 6) inputOtp = it },
-                            label = { Text("Enter 6-Digit Code (OTP)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                    } else if (resetStep == 3) {
-                        Text(
-                            text = "✓ Code Verified! Enter your new password below:",
-                            fontSize = 13.sp,
-                            color = Color(0xFF10B981),
-                            modifier = Modifier.padding(bottom = 12.dp)
-                        )
-                        OutlinedTextField(
-                            value = resetNewPassInput,
-                            onValueChange = { resetNewPassInput = it },
-                            label = { Text("New Password") },
-                            visualTransformation = PasswordVisualTransformation(),
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                    } else {
-                        Text(
-                            text = "✓ Password updated successfully! You can now log in with your new password.",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF10B981)
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                if (resetStep == 1) {
-                    Button(
-                        onClick = {
-                            if (resetEmailInput.isNotBlank()) {
-                                generatedOtp = ((100000..999999).random()).toString()
-                                resetStep = 2
-                            } else {
-                                Toast.makeText(context, "Please enter your email", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A3C6E))
-                    ) {
-                        Text("Send 6-Digit Code")
-                    }
-                } else if (resetStep == 2) {
-                    Button(
-                        onClick = {
-                            if (inputOtp.trim() == generatedOtp.trim()) {
-                                resetStep = 3
-                            } else {
-                                Toast.makeText(context, "Invalid 6-digit code. Use: $generatedOtp", Toast.LENGTH_LONG).show()
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
-                    ) {
-                        Text("Verify Code")
-                    }
-                } else if (resetStep == 3) {
-                    Button(
-                        onClick = {
-                            if (resetNewPassInput.isNotBlank()) {
-                                val credPrefs = context.getSharedPreferences("smartpo_registered_credentials", android.content.Context.MODE_PRIVATE)
-                                credPrefs.edit()
-                                    .putString("pass_${resetEmailInput.trim().lowercase()}", resetNewPassInput)
-                                    .apply()
-                                resetStep = 4
-                            } else {
-                                Toast.makeText(context, "Please enter a new password", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
-                    ) {
-                        Text("Save New Password")
-                    }
-                } else {
-                    Button(
-                        onClick = {
-                            password = resetNewPassInput
-                            username = resetEmailInput
-                            showForgotPasswordDialog = false
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A3C6E))
-                    ) {
-                        Text("Back to Sign In")
-                    }
-                }
-            },
-            dismissButton = {
-                if (resetStep < 4) {
-                    TextButton(onClick = { showForgotPasswordDialog = false }) {
-                        Text("Cancel", color = Color.Gray)
-                    }
-                }
-            }
-        )
     }
 }

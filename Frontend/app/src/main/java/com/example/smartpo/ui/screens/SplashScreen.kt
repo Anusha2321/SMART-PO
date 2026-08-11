@@ -29,8 +29,7 @@ fun SplashScreen(navController: NavController) {
 
         val destination = when {
             isLoggedIn -> Screen.Home.route
-            isRegistered -> Screen.Login.route
-            else -> Screen.Welcome.route
+            else -> Screen.Login.route
         }
 
         navController.navigate(destination) {

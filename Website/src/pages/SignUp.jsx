@@ -160,11 +160,6 @@ export default function SignUp() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">GST / Tax Identification Number</label>
-                <input type="text" name="gstNo" className="form-input" placeholder="27AAAAA0000A1Z5" value={formData.gstNo} onChange={handleChange} />
-              </div>
-
-              <div className="form-group">
                 <label className="form-label">Business Address</label>
                 <div style={{ position: 'relative' }}>
                   <MapPin size={18} style={{ position: 'absolute', left: '0.85rem', top: '1rem', color: '#94A3B8' }} />

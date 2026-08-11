@@ -23,17 +23,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
+import com.example.smartpo.util.LanguageManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(navController: NavController) {
     val context = LocalContext.current
+    val currentLang by LanguageManager.currentLanguage.collectAsState()
 
     // Dialog visibility states
     var showEditProfileDialog by remember { mutableStateOf(false) }
     var showChangePasswordDialog by remember { mutableStateOf(false) }
     var showPrivacyDialog by remember { mutableStateOf(false) }
     var showTermsDialog by remember { mutableStateOf(false) }
+    var showLanguageDialog by remember { mutableStateOf(false) }
 
     // User Profile Data
     var userName by remember { mutableStateOf("Admin Account") }
@@ -55,7 +58,7 @@ fun ProfileScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profile Settings", fontWeight = FontWeight.Bold) }
+                title = { Text(LanguageManager.getString("profile_settings"), fontWeight = FontWeight.Bold) }
             )
         }
     ) { innerPadding ->
@@ -120,8 +123,8 @@ fun ProfileScreen(navController: NavController) {
                 Column {
                     ProfileOptionItem(
                         icon = Icons.Default.Person,
-                        title = "Edit Profile",
-                        subtitle = "Change your name and contact details",
+                        title = LanguageManager.getString("edit_profile"),
+                        subtitle = LanguageManager.getString("edit_profile_sub"),
                         onClick = {
                             tempName = userName
                             tempPhone = userPhone
@@ -132,8 +135,8 @@ fun ProfileScreen(navController: NavController) {
                     Divider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
                     ProfileOptionItem(
                         icon = Icons.Default.Lock,
-                        title = "Change Password",
-                        subtitle = "Update your security credentials",
+                        title = LanguageManager.getString("change_password"),
+                        subtitle = LanguageManager.getString("change_password_sub"),
                         onClick = {
                             currentPassword = ""
                             newPassword = ""
@@ -155,15 +158,15 @@ fun ProfileScreen(navController: NavController) {
                 Column {
                     ProfileOptionItem(
                         icon = Icons.Default.Shield,
-                        title = "Privacy Policy",
-                        subtitle = "Understand how we protect your data",
+                        title = LanguageManager.getString("privacy_policy"),
+                        subtitle = LanguageManager.getString("privacy_policy_sub"),
                         onClick = { showPrivacyDialog = true }
                     )
                     Divider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
                     ProfileOptionItem(
                         icon = Icons.Default.Description,
-                        title = "Terms & Conditions",
-                        subtitle = "Review our rules and service agreement",
+                        title = LanguageManager.getString("terms_conditions"),
+                        subtitle = LanguageManager.getString("terms_conditions_sub"),
                         onClick = { showTermsDialog = true }
                     )
                 }
@@ -172,9 +175,6 @@ fun ProfileScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(16.dp))
 
             // Section: App Preferences & Multi-Language
-            var showLanguageDialog by remember { mutableStateOf(false) }
-            val currentLang by com.example.smartpo.util.LanguageManager.currentLanguage.collectAsState()
-
             Card(
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -182,7 +182,7 @@ fun ProfileScreen(navController: NavController) {
                 Column {
                     ProfileOptionItem(
                         icon = Icons.Default.Language,
-                        title = "App Language / भाषा / மொழி",
+                        title = LanguageManager.getString("app_language") + " / भाषा / மொழி",
                         subtitle = "Current: ${currentLang.displayName}",
                         onClick = { showLanguageDialog = true }
                     )
@@ -193,15 +193,15 @@ fun ProfileScreen(navController: NavController) {
             if (showLanguageDialog) {
                 AlertDialog(
                     onDismissRequest = { showLanguageDialog = false },
-                    title = { Text("Select App Language", fontWeight = FontWeight.Bold) },
+                    title = { Text(LanguageManager.getString("select_language"), fontWeight = FontWeight.Bold) },
                     text = {
-                        Column {
+                        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                             com.example.smartpo.util.AppLanguage.values().forEach { lang ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            com.example.smartpo.util.LanguageManager.setLanguage(context, lang)
+                                            LanguageManager.setLanguage(context, lang)
                                             showLanguageDialog = false
                                             (context as? android.app.Activity)?.recreate()
                                         }
@@ -211,7 +211,7 @@ fun ProfileScreen(navController: NavController) {
                                     RadioButton(
                                         selected = (currentLang == lang),
                                         onClick = {
-                                            com.example.smartpo.util.LanguageManager.setLanguage(context, lang)
+                                            LanguageManager.setLanguage(context, lang)
                                             showLanguageDialog = false
                                             (context as? android.app.Activity)?.recreate()
                                         }
@@ -253,46 +253,49 @@ fun ProfileScreen(navController: NavController) {
             ) {
                 Icon(Icons.Default.ExitToApp, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Logout", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(LanguageManager.getString("logout"), fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
 
-    // 1. Edit Profile Dialog
+    // Edit Profile Dialog
     if (showEditProfileDialog) {
         AlertDialog(
             onDismissRequest = { showEditProfileDialog = false },
-            title = { Text("Edit Profile", fontWeight = FontWeight.Bold) },
+            title = { Text(LanguageManager.getString("edit_profile"), fontWeight = FontWeight.Bold) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column {
                     OutlinedTextField(
                         value = tempName,
                         onValueChange = { tempName = it },
-                        label = { Text("Name") },
-                        singleLine = true
+                        label = { Text("Full Name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = tempPhone,
                         onValueChange = { tempPhone = it },
                         label = { Text("Phone Number") },
-                        singleLine = true
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = tempCompany,
                         onValueChange = { tempCompany = it },
                         label = { Text("Company Name") },
-                        singleLine = true
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    if (tempName.isNotBlank()) {
-                        userName = tempName
-                        userPhone = tempPhone
-                        userCompany = tempCompany
-                        showEditProfileDialog = false
-                    }
+                Button(onClick = {
+                    userName = tempName
+                    userPhone = tempPhone
+                    userCompany = tempCompany
+                    showEditProfileDialog = false
                 }) {
                     Text("Save")
                 }
@@ -305,51 +308,60 @@ fun ProfileScreen(navController: NavController) {
         )
     }
 
-    // 2. Change Password Dialog
+    // Change Password Dialog
     if (showChangePasswordDialog) {
         AlertDialog(
             onDismissRequest = { showChangePasswordDialog = false },
-            title = { Text("Change Password", fontWeight = FontWeight.Bold) },
+            title = { Text(LanguageManager.getString("change_password"), fontWeight = FontWeight.Bold) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column {
                     OutlinedTextField(
                         value = currentPassword,
                         onValueChange = { currentPassword = it },
                         label = { Text("Current Password") },
                         visualTransformation = PasswordVisualTransformation(),
-                        singleLine = true
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = newPassword,
                         onValueChange = { newPassword = it },
                         label = { Text("New Password") },
                         visualTransformation = PasswordVisualTransformation(),
-                        singleLine = true
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
                         label = { Text("Confirm New Password") },
                         visualTransformation = PasswordVisualTransformation(),
-                        singleLine = true
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     if (passwordError.isNotEmpty()) {
-                        Text(passwordError, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                        Text(
+                            text = passwordError,
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
                     }
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    if (currentPassword.isEmpty() || newPassword.isEmpty() || confirmPassword.isEmpty()) {
-                        passwordError = "All fields are required"
+                Button(onClick = {
+                    if (newPassword.isBlank()) {
+                        passwordError = "New password cannot be empty"
                     } else if (newPassword != confirmPassword) {
                         passwordError = "Passwords do not match"
                     } else {
-                        // Password successfully updated mock
                         showChangePasswordDialog = false
                     }
                 }) {
-                    Text("Update")
+                    Text("Update Password")
                 }
             },
             dismissButton = {
@@ -360,82 +372,39 @@ fun ProfileScreen(navController: NavController) {
         )
     }
 
-    // 3. Privacy Policy Dialog
+    // Privacy Policy Dialog
     if (showPrivacyDialog) {
         AlertDialog(
             onDismissRequest = { showPrivacyDialog = false },
-            title = { Text("Privacy Policy", fontWeight = FontWeight.Bold) },
+            title = { Text(LanguageManager.getString("privacy_policy"), fontWeight = FontWeight.Bold) },
             text = {
-                Column(
-                    modifier = Modifier
-                        .heightIn(max = 300.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    Text(
-                        text = """
-                            Effective Date: July 24, 2026
-
-                            At SmartPO, we prioritize the protection and confidentiality of your business and personal data. This Privacy Policy details how we collect, store, and process your purchasing information.
-
-                            1. Data Collection
-                            We collect account details (name, email, phone number) and purchase order (PO) generation data, including item names, catalog metadata, and prices, to facilitate seamless PO management.
-
-                            2. Data Utilization
-                            Your data is solely used to process purchase orders, match catalog items using our Gemini AI assistant, and verify analytics. We do not sell or share your data with unauthorized third parties.
-
-                            3. Security Measures
-                            We employ state-of-the-art encryption protocols (HTTPS, end-to-end database security via Supabase) to ensure all data remains protected against unauthorized breaches.
-
-                            If you have questions regarding this policy, please reach out to support@smartpo.com.
-                        """.trimIndent(),
-                        fontSize = 14.sp
-                    )
-                }
+                Text(
+                    "SmartPO respects your privacy. All purchase order records, customer data, and item catalogs stored within SmartPO are encrypted and stored securely.",
+                    fontSize = 14.sp
+                )
             },
             confirmButton = {
-                TextButton(onClick = { showPrivacyDialog = false }) {
-                    Text("Close")
+                Button(onClick = { showPrivacyDialog = false }) {
+                    Text("OK")
                 }
             }
         )
     }
 
-    // 4. Terms and Conditions Dialog
+    // Terms & Conditions Dialog
     if (showTermsDialog) {
         AlertDialog(
             onDismissRequest = { showTermsDialog = false },
-            title = { Text("Terms & Conditions", fontWeight = FontWeight.Bold) },
+            title = { Text(LanguageManager.getString("terms_conditions"), fontWeight = FontWeight.Bold) },
             text = {
-                Column(
-                    modifier = Modifier
-                        .heightIn(max = 300.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    Text(
-                        text = """
-                            Effective Date: July 24, 2026
-
-                            Welcome to SmartPO. By accessing and using our application, you agree to comply with the following Terms and Conditions.
-
-                            1. License & Access
-                            We grant you a non-transferable, non-exclusive license to use the SmartPO platform strictly for generating, reviewing, and handling company purchase orders.
-
-                            2. AI Feature Usage
-                            Our AI Order Assistant is powered by Gemini AI. While we strive for extreme precision in catalog matching, all AI-generated matching results must be verified by the admin before making final purchase orders.
-
-                            3. Account Responsibility
-                            You are fully responsible for maintaining the confidentiality of your credentials. Any actions performed under your account will be deemed authorized by your organization.
-
-                            4. Modifications
-                            SmartPO reserves the right to modify these terms at any time. Continued use of the app signifies your acceptance of any revisions.
-                        """.trimIndent(),
-                        fontSize = 14.sp
-                    )
-                }
+                Text(
+                    "By using SmartPO, you agree to generate purchase orders accurately and maintain valid supplier details. System logs are audited for enterprise compliance.",
+                    fontSize = 14.sp
+                )
             },
             confirmButton = {
-                TextButton(onClick = { showTermsDialog = false }) {
-                    Text("Close")
+                Button(onClick = { showTermsDialog = false }) {
+                    Text("I Agree")
                 }
             }
         )
@@ -452,29 +421,25 @@ fun ProfileOptionItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 16.dp),
+            .clickable { onClick() }
+            .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(28.dp)
+            modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(text = title, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-            Text(text = subtitle, color = Color.Gray, fontSize = 12.sp)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text(text = subtitle, fontSize = 12.sp, color = Color.Gray)
         }
         Icon(
             imageVector = Icons.Default.ChevronRight,
             contentDescription = null,
-            tint = Color.Gray,
-            modifier = Modifier.size(20.dp)
+            tint = Color.Gray
         )
     }
 }
-
